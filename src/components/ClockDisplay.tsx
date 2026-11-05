@@ -55,9 +55,12 @@ export function ClockDisplay(p: ClockDisplayProps) {
     // 지금부터 종료 시각까지 분침이 지나갈 구간 (최대 60분)
     band = p.waiting ? undefined : { fromDeg: minAngle, toDeg: minAngle + Math.min(remainingMin, 60) * 6 };
   } else {
-    // 카운트다운: 바늘이 남은 시간을 가리키고, 12시부터 남은 분(최대 60)만큼 링 표시 (타임 타이머 방식)
-    displaySeconds = p.remainingMs / 1000;
-    band = { fromDeg: 0, toDeg: Math.min(remainingMin, 60) * 6 };
+    // 카운트다운: 12시(0분)에서 출발해 바늘은 항상 시계 방향으로 흐르고,
+    // 남은 시간은 분침 앞쪽 링(최대 60분)과 아래 숫자로 표시
+    const elapsedSec = Math.max(0, (p.durationMs - p.remainingMs) / 1000);
+    displaySeconds = elapsedSec;
+    const minAngle = ((elapsedSec / 60) % 60) * 6;
+    band = { fromDeg: minAngle, toDeg: minAngle + Math.min(remainingMin, 60) * 6 };
   }
 
   return (
