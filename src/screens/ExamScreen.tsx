@@ -356,11 +356,6 @@ export function ExamScreen({ settings, onFinish }: { settings: ExamSettings; onF
               { value: 60, label: '60x' },
             ]}
           />
-          {phase === 'waiting' && (
-            <button type="button" onClick={() => setVirtual(0)} className="flex items-center gap-1 rounded-md bg-white/10 px-2 py-1 text-xs font-semibold hover:bg-white/20">
-              <SkipForward size={12} /> 대기 건너뛰기
-            </button>
-          )}
           <button
             type="button"
             onClick={() => setVirtual(Math.max(virtualRef.current, durationMs - warnMs))}
@@ -388,8 +383,18 @@ export function ExamScreen({ settings, onFinish }: { settings: ExamSettings; onF
           <div className="flex items-center gap-2 text-sm font-black">
             <Lock size={15} /> [시험 시작 대기 중 - 문제지 표지 확인]
           </div>
-          <div className="font-mono text-sm font-bold tabular-nums">
-            {minToHM(timing.startMin)} 시작까지 {msToMMSS(-virtualMs)}
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-sm font-bold tabular-nums">
+              {minToHM(timing.startMin)} 시작까지 {msToMMSS(-virtualMs)}
+            </span>
+            {/* 테스트 도구와 상관없이 항상 표시 */}
+            <button
+              type="button"
+              onClick={() => setVirtual(0)}
+              className="flex items-center gap-1 rounded-lg bg-amber-500 px-2.5 py-1 text-xs font-bold text-white hover:bg-amber-600"
+            >
+              <SkipForward size={12} /> 대기 건너뛰고 바로 시작
+            </button>
           </div>
         </div>
       )}
