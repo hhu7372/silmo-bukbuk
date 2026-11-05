@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { Layout, type NavTab } from './components/Layout';
 import { ConfirmHost, confirmAsync } from './components/ConfirmHost';
 import { examAudio } from './lib/audio';
@@ -43,24 +43,87 @@ function Shell() {
     savePref('exam-id', id);
   };
 
+  /**
+   * 화면 이동 기록. 브라우저/안드로이드 뒤로가기 버튼과 연결하기 위해
+   * 화면을 하나 쌓을 때마다 history 에도 한 칸 쌓고, popstate 로 되돌아온다.
+   */
+  const routeRef = useRef(route);
+  routeRef.current = route;
+  const skipConfirmRef = useRef(false);
+  const stackRef = useRef(stack);
+  stackRef.current = stack;
+  /** pushState 가 실제로 동작하는 환경인지 (막힌 환경에서는 history.back 을 쓰면 안 됨) */
+  const historyOkRef = useRef(false);
+
   /** replace: 현재 화면을 기록에 남기지 않음 (예: 시험 → 결과) */
   const go = (r: Route, opts: { replace?: boolean } = {}) => {
-    if (!opts.replace) setStack((s) => [...s.slice(-30), route]);
+    if (!opts.replace) {
+      setStack((s) => [...s.slice(-30), route]);
+      try {
+        window.history.pushState({ silmo: true }, '');
+        historyOkRef.current = true;
+      } catch {
+        historyOkRef.current = false;
+      }
+    }
     setRoute(r);
     window.scrollTo({ top: 0 });
   };
 
-  const back = async () => {
-    if (stack.length === 0) return;
-    if (route.name === 'exam') {
-      const ok = await confirmAsync('시험을 중단하고 설정 화면으로 돌아갈까요? 이번 시험 기록은 저장되지 않습니다.', { confirmLabel: '중단하고 나가기', danger: true });
-      if (!ok) return;
-      examAudio.stop();
-    }
-    const prev = stack[stack.length - 1];
-    setStack((s) => s.slice(0, -1));
-    setRoute(prev);
+  const popRoute = () => {
+    const s = stackRef.current;
+    if (s.length === 0) return;
+    stackRef.current = s.slice(0, -1);
+    setStack(stackRef.current);
+    setRoute(s[s.length - 1]);
     window.scrollTo({ top: 0 });
+  };
+
+  useEffect(() => {
+    const onPop = () => {
+      if (skipConfirmRef.current) {
+        skipConfirmRef.current = false;
+        popRoute();
+        return;
+      }
+      if (routeRef.current.name === 'exam') {
+        // 시험 중 실수로 뒤로가기를 눌러도 바로 나가지 않도록 한 칸 다시 쌓고 확인
+        try {
+          window.history.pushState({ silmo: true }, '');
+        } catch {
+          /* ignore */
+        }
+        void confirmAsync('시험을 중단하고 설정 화면으로 돌아갈까요? 이번 시험 기록은 저장되지 않습니다.', { confirmLabel: '중단하고 나가기', danger: true }).then((ok) => {
+          if (!ok) return;
+          examAudio.stop();
+          skipConfirmRef.current = true;
+          window.history.back();
+        });
+        return;
+      }
+      popRoute();
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
+  /** 화면 왼쪽 위 ← 버튼: 기기 뒤로가기와 같은 동작 */
+  const back = () => {
+    if (stack.length === 0) return;
+    if (historyOkRef.current) {
+      window.history.back();
+      return;
+    }
+    // 기록 API 를 못 쓰는 환경: 앱 안에서만 되돌아감
+    if (route.name === 'exam') {
+      void confirmAsync('시험을 중단하고 설정 화면으로 돌아갈까요? 이번 시험 기록은 저장되지 않습니다.', { confirmLabel: '중단하고 나가기', danger: true }).then((ok) => {
+        if (!ok) return;
+        examAudio.stop();
+        popRoute();
+      });
+      return;
+    }
+    popRoute();
   };
 
   const tab: NavTab = route.name === 'history' ? 'history' : route.name === 'account' || route.name === 'feedback' ? 'account' : 'home';
@@ -127,7 +190,7 @@ function Shell() {
   }
 
   return (
-    <Layout tab={tab} onTab={onTab} onFeedback={(kind) => go({ name: 'feedback', kind })} onBack={stack.length > 0 ? () => void back() : undefined} showNav={route.name !== 'exam'} immersive={route.name === 'exam'}>
+    <Layout tab={tab} onTab={onTab} onFeedback={(kind) => go({ name: 'feedback', kind })} onBack={stack.length > 0 ? back : undefined} showNav={route.name !== 'exam'} immersive={route.name === 'exam'}>
       <Suspense fallback={<div className="py-16 text-center text-sm text-slate-500">불러오는 중…</div>}>{content}</Suspense>
       <LoginModal />
       <ConfirmHost />

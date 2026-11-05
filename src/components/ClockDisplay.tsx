@@ -34,7 +34,7 @@ export function ClockDisplay(p: ClockDisplayProps) {
         )}
       >
         <div className="text-xs font-bold uppercase tracking-[0.3em] opacity-60">{p.timeMode === 'real' ? 'EXAM CLOCK' : 'COUNTDOWN'}</div>
-        <div className={cx('mt-2 font-mono font-black tabular-nums', p.compact ? (p.timeMode === 'real' ? 'text-2xl sm:text-5xl' : 'text-4xl sm:text-6xl') : 'text-6xl sm:text-8xl', p.warning && 'text-red-400')}>{main}</div>
+        <div className={cx('mt-2 font-mono font-black tabular-nums', p.compact ? (p.timeMode === 'real' ? 'text-2xl sm:text-5xl lg:text-7xl' : 'text-4xl sm:text-6xl lg:text-8xl') : 'text-6xl sm:text-8xl', p.warning && 'text-red-400')}>{main}</div>
         <div className={cx('mt-3 font-mono tabular-nums opacity-70', p.compact ? 'text-[11px] sm:text-sm' : 'text-sm')}>{sub}</div>
         <div className="mt-4 h-2 w-full max-w-md overflow-hidden rounded-full bg-black/10">
           <div
@@ -62,7 +62,7 @@ export function ClockDisplay(p: ClockDisplayProps) {
 
   return (
     <div className="flex w-full flex-col items-center">
-      <div className={cx('aspect-square w-full', p.compact ? 'max-w-[340px]' : 'max-w-[min(78vw,420px)]')}>
+      <div className={cx('aspect-square w-full', p.compact ? 'max-w-[340px] lg:max-w-[min(100%,calc(100vh-280px))]' : 'max-w-[min(78vw,420px)] lg:max-w-[min(100%,calc(100vh-300px),560px)]')}>
         <AnalogClock
           displaySeconds={displaySeconds}
           model={p.model}

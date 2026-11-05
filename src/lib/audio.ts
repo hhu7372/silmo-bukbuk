@@ -158,7 +158,7 @@ class ExamAudio {
     window.speechSynthesis.speak(u);
   }
 
-  announce(event: ExamAudioEvent, subjectName: string, warningMin: number): void {
+  announce(event: ExamAudioEvent, _subjectName: string, warningMin: number): void {
     this.unlock();
     const custom = this.custom.get(event);
     if (custom) {
@@ -167,12 +167,13 @@ class ExamAudio {
       return;
     }
     const delay = this.chime(event);
+    // 기본 음성: 벨소리 뒤에 시점 이름만 짧게 (추가 멘트 없음)
     const messages: Record<ExamAudioEvent, string> = {
-      yebi: `예비령입니다. 감독관이 입실합니다. ${subjectName} 영역 시험 시작 15분 전입니다.`,
-      prep: `준비령입니다. ${subjectName} 영역 시험 시작 전입니다. 답안지에 성명과 수험번호를 기재하고 문제지 표지를 확인하십시오.`,
-      start: `본령입니다. 지금부터 ${subjectName} 영역 시험을 시작합니다.`,
-      warning: `시험 종료 ${warningMin}분 전입니다.`,
-      end: `종료령입니다. ${subjectName} 영역 시험이 종료되었습니다. 필기구를 내려놓으십시오.`,
+      yebi: '예비령입니다.',
+      prep: '준비령입니다.',
+      start: '본령입니다.',
+      warning: `종료 ${warningMin}분 전입니다.`,
+      end: '종료령입니다.',
     };
     window.setTimeout(() => this.speak(messages[event]), delay * 1000 + 200);
   }

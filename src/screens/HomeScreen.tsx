@@ -89,7 +89,10 @@ export function HomeScreen({ examId, onExamChange, onSelect }: { examId: string;
             ))}
           </div>
         )}
-        <div className="mt-3 text-lg font-black">{config.exam_title}</div>
+        <div className="mt-3 flex flex-wrap items-baseline gap-x-2">
+          <span className="text-lg font-black">{config.exam_title}</span>
+          {config.edition && <span className="text-xs font-semibold text-slate-300">{config.edition}</span>}
+        </div>
         {config.notice && <p className="mt-1 text-xs leading-relaxed text-slate-300">{config.notice}</p>}
         <p className="mt-2 flex items-center gap-1.5 text-xs text-amber-200">
           <Sparkles size={13} className="shrink-0" /> 국가고시 등 다른 시험도 계속 추가될 예정입니다.

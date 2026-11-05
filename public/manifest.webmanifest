@@ -1,18 +1,76 @@
 {
+  "id": "./",
   "name": "실모벅벅 - 모의고사 타이머",
   "short_name": "실모벅벅",
   "description": "실제 수능 시간표 그대로 흐르는 모의고사 타이머와 문항별 시간·오답 분석",
   "lang": "ko",
+  "dir": "ltr",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
   "orientation": "any",
   "background_color": "#f1f5f9",
   "theme_color": "#0f172a",
+  "categories": [
+    "education",
+    "productivity",
+    "utilities"
+  ],
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
-    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "screenshots/tablet-exam.png",
+      "sizes": "2560x1440",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "태블릿: 큰 시계와 문항별 시간 측정"
+    },
+    {
+      "src": "screenshots/tablet-report.png",
+      "sizes": "2560x1440",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "태블릿: 채점과 오답 분석"
+    },
+    {
+      "src": "screenshots/phone-exam.png",
+      "sizes": "810x1440",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "실제 수능 시간표대로 흐르는 시계"
+    },
+    {
+      "src": "screenshots/phone-history.png",
+      "sizes": "810x1440",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "파트별 누적 오답 통계"
+    }
   ]
 }

@@ -18,9 +18,9 @@ npm run preview    # 빌드 결과 미리보기
 
 | 호스팅 | 방법 |
 | --- | --- |
-| **Vercel** | 저장소 연결 → 자동 인식 (`vercel.json` 포함). 환경 변수 `SITE_URL` 설정 |
+| **Cloudflare Pages (권장)** | 무료·트래픽 무제한·광고 등 상업적 이용 가능. 빌드 명령 `npm run build`, 출력 폴더 `dist`, 환경 변수 `SITE_URL` |
 | **Netlify** | 저장소 연결 → `netlify.toml` 자동 적용. 환경 변수 `SITE_URL` 설정 |
-| **Cloudflare Pages** | 빌드 명령 `npm run build`, 출력 폴더 `dist`, 환경 변수 `SITE_URL` |
+| **Vercel** | 저장소 연결 → 자동 인식 (`vercel.json` 포함). 무료(Hobby) 요금제는 비상업용이라 광고를 붙이면 유료 요금제가 필요 |
 | **GitHub Pages** | `.github/workflows/deploy-pages.yml` 포함. Settings → Pages → Source 를 *GitHub Actions* 로, Variables 에 `SITE_URL` |
 
 `SITE_URL`(예: `https://silmo.kr`)을 넣고 빌드하면 카카오톡·SNS 공유 미리보기용 `og:image`, `og:url`, `canonical` 이 절대 주소로 들어갑니다. `.env.example` 참고.
@@ -28,6 +28,16 @@ npm run preview    # 빌드 결과 미리보기
 ### 배포본에서 달라지는 점
 - 시험 화면의 **테스트 도구**(배속·시간 점프)는 숨겨집니다. 계정 화면의 토글 또는 주소 뒤 `?debug=1` 로 켤 수 있습니다.
 - **해설지 사진 인식**은 claude.ai 아티팩트 런타임에서만 동작하므로 일반 웹에서는 자동으로 숨겨지고 빠른 입력만 쓰입니다. 자체 서버(OCR 또는 Claude API)를 붙이려면 `src/lib/claudeRuntime.ts` 만 교체하면 됩니다.
+
+## 안드로이드 앱 (플레이 스토어)
+
+웹사이트를 그대로 앱으로 감싸는 TWA 방식입니다. 웹을 고치면 앱도 바로 바뀌어 스토어 재심사가 필요 없습니다.
+서비스 워커(`sw.js`, 오프라인 지원), 앱 매니페스트, 앱 연결 파일(`/.well-known/assetlinks.json`, `TWA_PACKAGE_NAME`·`TWA_SHA256_FINGERPRINTS` 환경 변수로 생성)이 준비되어 있습니다.
+등록 자료와 절차: `docs/play-store/README.md`
+
+## 시험 데이터 수정 (수능 개편 등)
+
+`src/data/exams.json` 한 파일만 고치면 됩니다. 빌드할 때 자동 검사되어 잘못된 값이면 배포가 멈춥니다. 방법: `docs/시험-데이터-수정-가이드.md`
 
 ## 운영 설정
 

@@ -304,7 +304,7 @@ export function ExamScreen({ settings, onFinish }: { settings: ExamSettings; onF
   );
 
   return (
-    <div className="relative space-y-3">
+    <div className="relative select-none space-y-3 [-webkit-touch-callout:none]">
       {/* 종료 N분 전: Vignette Glow 점멸 (약 3초) 후 원래 화면으로 복귀 */}
       {flashing && (
         <div className="pointer-events-none fixed inset-0 z-40 animate-warning-flash" aria-hidden />
@@ -407,12 +407,14 @@ export function ExamScreen({ settings, onFinish }: { settings: ExamSettings; onF
           </div>
         </>
       ) : (
-        <>
-          {/* 시계 + 현재 문항 컨트롤 (한 줄) */}
-          <div className="grid grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-2 sm:grid-cols-2 sm:gap-3">
-            <div className={cx('flex items-center justify-center rounded-3xl p-2 shadow-sm sm:p-4', 'bg-white')}>{clock}</div>
+        /*
+         * 휴대폰·태블릿 세로: [시계 | 컨트롤] 위, 문항 그리드 아래
+         * 태블릿 가로·데스크톱(lg): 왼쪽에 큰 시계 고정, 오른쪽에 컨트롤·그리드·Lap 기록
+         */
+        <div className="grid grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-2 [grid-template-areas:'clock_ctrl'_'grid_grid'_'laps_laps'] sm:grid-cols-2 sm:gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-rows-[auto_auto_1fr] lg:gap-4 lg:[grid-template-areas:'clock_ctrl'_'clock_grid'_'clock_laps']">
+            <div className="flex items-center justify-center rounded-3xl bg-white p-2 shadow-sm [grid-area:clock] sm:p-4 lg:sticky lg:top-[72px] lg:min-h-[calc(100vh-190px)] lg:self-start lg:p-6">{clock}</div>
 
-            <div className={cx('flex min-w-0 flex-col rounded-3xl border p-3 shadow-sm sm:p-4', panel)}>
+            <div className={cx('flex min-w-0 flex-col rounded-3xl border p-3 shadow-sm [grid-area:ctrl] sm:p-4', panel)}>
               {phase === 'waiting' ? (
                 <div className={cx('flex flex-1 flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed p-3 text-center', 'border-slate-300 text-slate-500')}>
                   <Lock size={24} />
@@ -496,10 +498,9 @@ export function ExamScreen({ settings, onFinish }: { settings: ExamSettings; onF
                 </div>
               )}
             </div>
-          </div>
 
           {/* 문항 미니 그리드 – 시계와 한 화면 */}
-          <div className={cx('rounded-3xl border p-3 shadow-sm sm:p-4', panel)}>
+          <div className={cx('rounded-3xl border p-3 shadow-sm [grid-area:grid] sm:p-4', panel)}>
             <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
               <StatusLegend />
               <div className={cx('text-xs font-semibold tabular-nums', muted)}>
@@ -507,7 +508,7 @@ export function ExamScreen({ settings, onFinish }: { settings: ExamSettings; onF
               </div>
             </div>
             <QuestionGrid total={total} statusOf={(q) => (tracker ? getStatus(tracker, q) : 'untried')} onSelect={doJump} disabled={locked} />
-            <div className={cx('mt-2 hidden flex-wrap gap-x-3 gap-y-1 text-[11px] sm:flex', muted)}>
+            <div className={cx('mt-2 hidden flex-wrap gap-x-3 gap-y-1 text-[11px] sm:flex [@media(hover:none)]:hidden', muted)}>
               <span>
                 <Kbd>Space</Kbd> 풀이 완료
               </span>
@@ -524,7 +525,7 @@ export function ExamScreen({ settings, onFinish }: { settings: ExamSettings; onF
           </div>
 
           {recentLaps.length > 0 && (
-            <div className={cx('rounded-3xl border p-3 shadow-sm sm:p-4', panel)}>
+            <div className={cx('rounded-3xl border p-3 shadow-sm [grid-area:laps] sm:p-4', panel)}>
               <div className={cx('mb-1 text-xs font-bold', muted)}>최근 Lap 기록</div>
               <ul className="space-y-1 text-xs">
                 {recentLaps.map((l) => (
@@ -548,7 +549,7 @@ export function ExamScreen({ settings, onFinish }: { settings: ExamSettings; onF
               </ul>
             </div>
           )}
-        </>
+        </div>
       )}
     </div>
   );

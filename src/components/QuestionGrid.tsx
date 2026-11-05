@@ -49,7 +49,7 @@ export function QuestionGrid({
             type="button"
             disabled={disabled}
             onClick={() => onSelect(q)}
-            className={cx('h-8 rounded-md text-xs sm:h-9 font-bold tabular-nums transition disabled:cursor-not-allowed disabled:opacity-50', STATUS_CLS[st])}
+            className={cx('h-8 rounded-md text-xs sm:h-9 md:h-11 md:text-sm font-bold tabular-nums transition disabled:cursor-not-allowed disabled:opacity-50', STATUS_CLS[st])}
             aria-label={`${q}번 문항 (${STATUS_LABEL[st]})`}
           >
             {q}

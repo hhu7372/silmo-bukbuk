@@ -154,7 +154,8 @@ export function Layout({
   immersive?: boolean;
 }) {
   const { isPro } = useApp();
-  const showAds = !isPro;
+  // 시험 중에는 집중을 위해 광고를 숨김 (태블릿 가로 화면은 넓은 2단 배치)
+  const showAds = !isPro && !immersive;
   // 하단 여백: 네비(64px) + 모바일 띠 배너(50px)
   const bottomPad = cx(showNav ? 'pb-20' : 'pb-6', showAds && (showNav ? 'max-lg:pb-[136px]' : 'max-lg:pb-[72px]'));
 
@@ -169,7 +170,7 @@ export function Layout({
             </div>
           </aside>
         )}
-        <main className={cx('mx-auto w-full max-w-3xl min-w-0 px-4 pt-4 sm:pt-6', bottomPad)}>
+        <main className={cx('mx-auto w-full min-w-0 px-4 pt-4 sm:pt-6', immersive ? 'max-w-3xl lg:max-w-6xl' : 'max-w-3xl', bottomPad)}>
           {children}
           {showNav && (
             <footer className="mt-10 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] text-slate-400">

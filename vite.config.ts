@@ -1,5 +1,22 @@
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
+import { readdirSync, readFileSync } from 'node:fs';
+import { validateExamData } from './src/lib/examValidation';
+
+/** 빌드 전에 src/data/exams.json 을 검사해서 잘못된 값이 있으면 배포를 멈춘다 */
+function examDataCheck(): Plugin {
+  return {
+    name: 'exam-data-check',
+    buildStart() {
+      const data = JSON.parse(readFileSync('src/data/exams.json', 'utf8'));
+      const sounds = readdirSync('src/assets/sounds').filter((f) => f.endsWith('.mp3'));
+      const problems = validateExamData(data, sounds);
+      if (problems.length) {
+        this.error(`\n\nsrc/data/exams.json 에 고칠 곳이 있습니다:\n${problems.join('\n')}\n`);
+      }
+    },
+  };
+}
 
 /**
  * 배포 주소(SITE_URL)가 있으면 공유 미리보기에 필요한 절대 경로 태그를 넣는다.
@@ -41,6 +58,112 @@ function adsense(client: string | undefined): Plugin {
     generateBundle() {
       if (!id) return;
       this.emitFile({ type: 'asset', fileName: 'ads.txt', source: `google.com, ${id.replace(/^ca-/, '')}, DIRECT, f08c47fec0942fa0\n` });
+    },
+  };
+}
+
+/**
+ * 서비스 워커 (오프라인 지원 + 앱 설치 조건)
+ * - 화면(HTML): 네트워크 우선 → 끊기면 저장본
+ * - 해시가 붙은 자산(JS·CSS·음원): 한 번 받으면 저장해서 재사용
+ * 빌드마다 저장소 이름이 바뀌어 이전 버전 저장본은 자동 정리된다.
+ */
+function serviceWorker(): Plugin {
+  return {
+    name: 'service-worker',
+    generateBundle(_options, bundle) {
+      const version = new Date().toISOString().replace(/\D/g, '').slice(0, 14);
+      // 앱 코드(JS·CSS)는 설치할 때 미리 저장 → 처음 방문 뒤 바로 오프라인에서도 열림 (음원은 재생할 때 저장)
+      const precache = Object.keys(bundle).filter((f) => /\.(js|css)$/.test(f)).map((f) => `./${f}`);
+      this.emitFile({
+        type: 'asset',
+        fileName: 'sw.js',
+        source: SW_SOURCE.replace('__VERSION__', version).replace("'__PRECACHE__'", precache.map((f) => JSON.stringify(f)).join(', ')),
+      });
+    },
+  };
+}
+
+const SW_SOURCE = `const CACHE = 'silmo-__VERSION__';
+const SHELL = ['./', './index.html', './manifest.webmanifest', './favicon.svg', './icon-192.png', './icon-512.png', '__PRECACHE__'];
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) => Promise.all(keys.filter((k) => k.startsWith('silmo-') && k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()),
+  );
+});
+
+self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
+  if (url.origin !== self.location.origin) return;
+
+  if (req.mode === 'navigate') {
+    event.respondWith(
+      fetch(req)
+        .then((res) => {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put('./index.html', copy));
+          return res;
+        })
+        .catch(() => caches.match('./index.html')),
+    );
+    return;
+  }
+
+  if (url.pathname.includes('/assets/')) {
+    event.respondWith(
+      caches.match(req).then(
+        (hit) =>
+          hit ||
+          fetch(req).then((res) => {
+            if (res.ok && res.status === 200) {
+              const copy = res.clone();
+              caches.open(CACHE).then((c) => c.put(req, copy));
+            }
+            return res;
+          }),
+      ),
+    );
+    return;
+  }
+
+  event.respondWith(
+    caches.match(req).then((hit) => {
+      const net = fetch(req)
+        .then((res) => {
+          if (res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE).then((c) => c.put(req, copy));
+          }
+          return res;
+        })
+        .catch(() => hit);
+      return hit || net;
+    }),
+  );
+});
+`;
+
+/**
+ * 안드로이드 앱(TWA) 연결 확인 파일 /.well-known/assetlinks.json
+ * PWABuilder 가 알려주는 패키지 이름과 SHA-256 지문을 환경 변수로 넣으면 자동 생성된다.
+ * TWA_PACKAGE_NAME=kr.silmobukbuk.app
+ * TWA_SHA256_FINGERPRINTS=AB:CD:...,12:34:...   (여러 개면 쉼표로)
+ */
+function assetLinks(pkg: string | undefined, fingerprints: string | undefined): Plugin {
+  return {
+    name: 'asset-links',
+    generateBundle() {
+      if (!pkg || !fingerprints) return;
+      const list = fingerprints.split(',').map((f) => f.trim()).filter(Boolean);
+      const body = [{ relation: ['delegate_permission/common.handle_all_urls'], target: { namespace: 'android_app', package_name: pkg.trim(), sha256_cert_fingerprints: list } }];
+      this.emitFile({ type: 'asset', fileName: '.well-known/assetlinks.json', source: JSON.stringify(body, null, 2) + '\n' });
     },
   };
 }
@@ -106,10 +229,13 @@ export default defineConfig(({ mode }) => {
       'import.meta.env.VITE_CONTACT_EMAIL': JSON.stringify(env.CONTACT_EMAIL || process.env.CONTACT_EMAIL || ''),
     },
     plugins: [
+      examDataCheck(),
       react(),
       siteMeta(env.SITE_URL || process.env.SITE_URL),
       adsense(env.VITE_ADSENSE_CLIENT || process.env.VITE_ADSENSE_CLIENT),
       privacyPage(env.CONTACT_EMAIL || process.env.CONTACT_EMAIL),
+      serviceWorker(),
+      assetLinks(env.TWA_PACKAGE_NAME || process.env.TWA_PACKAGE_NAME, env.TWA_SHA256_FINGERPRINTS || process.env.TWA_SHA256_FINGERPRINTS),
     ],
     build: {
       // 차트 라이브러리는 결과/기록 화면을 열 때만 내려받음

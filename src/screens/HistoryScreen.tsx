@@ -29,9 +29,18 @@ export function HistoryScreen({ examId, onOpen }: { examId: string; onOpen: (r: 
     };
   }, [repository]);
 
+  /** 현재 시험 데이터 + 개편으로 빠진 과목이라도 기록이 남아 있으면 목록에 유지 */
+  const subjectTabs = useMemo(() => {
+    const tabs: Array<{ id: string; label: string; legacy: boolean }> = config.subjects.map((s) => ({ id: s.id, label: subjectLabel(s), legacy: false }));
+    for (const r of results ?? []) {
+      if (r.examId === examId && !tabs.some((t) => t.id === r.subjectId)) tabs.push({ id: r.subjectId, label: r.subjectName, legacy: true });
+    }
+    return tabs;
+  }, [config, results, examId]);
+  // 저장된 기록을 불러오는 중에는 과목을 바꾸지 않음
   useEffect(() => {
-    if (!config.subjects.some((s) => s.id === subjectId)) setSubjectId(config.subjects[0]?.id ?? '');
-  }, [config, subjectId]);
+    if (results !== null && !subjectTabs.some((s) => s.id === subjectId)) setSubjectId(subjectTabs[0]?.id ?? '');
+  }, [subjectTabs, subjectId]);
 
   const subject = getSubject(examId, subjectId);
   const subjectResults = useMemo(
@@ -167,17 +176,19 @@ export function HistoryScreen({ examId, onOpen }: { examId: string; onOpen: (r: 
       )}
 
       <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
-        {config.subjects.map((s) => (
+        {subjectTabs.map((s) => (
           <button
             key={s.id}
             type="button"
             onClick={() => setSubjectId(s.id)}
+            title={s.legacy ? '현재 시험 구성에는 없는 과목의 기록입니다' : undefined}
             className={cx(
               'shrink-0 rounded-full border px-3 py-1.5 text-sm font-bold',
               s.id === subjectId ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-300 bg-white text-slate-600',
             )}
           >
-            {subjectLabel(s)} <span className="opacity-60">{countBySubject(s.id)}</span>
+            {s.label}
+            {s.legacy && <span className="ml-1 text-[10px] font-semibold opacity-70">(이전 구성)</span>} <span className="opacity-60">{countBySubject(s.id)}</span>
           </button>
         ))}
       </div>
