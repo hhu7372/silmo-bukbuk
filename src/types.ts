@@ -20,6 +20,8 @@ export interface ExamSettings {
   visualAlert: boolean;
   soundAlert: boolean;
   expMode: boolean;
+  /** 회차마다 문항 수가 다른 시험에서 사용자가 지정한 문항 수 */
+  questionCount?: number;
 }
 
 /** 시험 1회의 결과 (저장 단위) */

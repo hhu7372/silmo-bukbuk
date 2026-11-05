@@ -8,6 +8,7 @@ import { AppProvider, useApp } from './context/AppContext';
 import { DEFAULT_EXAM_ID, EXAM_CONFIGS } from './data/examConfigData';
 import { loadPrimitive, savePref } from './repository/resultRepository';
 import { AccountScreen } from './screens/AccountScreen';
+import { FeedbackScreen } from './screens/FeedbackScreen';
 import { ExamScreen } from './screens/ExamScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { SetupScreen } from './screens/SetupScreen';
@@ -24,7 +25,8 @@ type Route =
   | { name: 'exam'; settings: ExamSettings; runId: number }
   | { name: 'report'; result: ExamResult; saved: boolean }
   | { name: 'history' }
-  | { name: 'account' };
+  | { name: 'account' }
+  | { name: 'feedback'; kind: 'feedback' | 'inquiry' };
 
 function Shell() {
   const { repository } = useApp();
@@ -61,7 +63,7 @@ function Shell() {
     window.scrollTo({ top: 0 });
   };
 
-  const tab: NavTab = route.name === 'history' ? 'history' : route.name === 'account' ? 'account' : 'home';
+  const tab: NavTab = route.name === 'history' ? 'history' : route.name === 'account' || route.name === 'feedback' ? 'account' : 'home';
 
   const onTab = (t: NavTab) => {
     if (route.name === 'exam') return;
@@ -117,12 +119,15 @@ function Shell() {
       content = <HistoryScreen examId={examId} onOpen={(result) => go({ name: 'report', result, saved: true })} />;
       break;
     case 'account':
-      content = <AccountScreen />;
+      content = <AccountScreen onFeedback={(kind) => go({ name: 'feedback', kind })} />;
+      break;
+    case 'feedback':
+      content = <FeedbackScreen key={route.kind} initialKind={route.kind} />;
       break;
   }
 
   return (
-    <Layout tab={tab} onTab={onTab} onBack={stack.length > 0 ? () => void back() : undefined} showNav={route.name !== 'exam'} immersive={route.name === 'exam'}>
+    <Layout tab={tab} onTab={onTab} onFeedback={(kind) => go({ name: 'feedback', kind })} onBack={stack.length > 0 ? () => void back() : undefined} showNav={route.name !== 'exam'} immersive={route.name === 'exam'}>
       <Suspense fallback={<div className="py-16 text-center text-sm text-slate-500">불러오는 중…</div>}>{content}</Suspense>
       <LoginModal />
       <ConfirmHost />

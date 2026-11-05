@@ -1,7 +1,7 @@
 import { useApp } from '../context/AppContext';
-import { HelpCircle, Sparkles, BookOpen, Calculator, ChevronDown, ChevronRight, Clock, FlaskConical, Globe2, Landmark, ListOrdered, Scale, Users } from 'lucide-react';
+import { Code2, Flame, HelpCircle, Languages, Monitor, Shield, Sparkles, BookOpen, Calculator, ChevronDown, ChevronRight, Clock, FlaskConical, Globe2, Landmark, ListOrdered, Scale, Users } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
-import { EXAM_CONFIGS, getExamConfig, subjectLabel, type ExamSubject } from '../data/examConfigData';
+import { EXAM_CATEGORIES, examsInCategory, getExamConfig, subjectLabel, type ExamSubject } from '../data/examConfigData';
 import { cx } from '../components/ui';
 
 const ICONS: Record<string, ReactNode> = {
@@ -12,6 +12,21 @@ const ICONS: Record<string, ReactNode> = {
   sci: <FlaskConical size={22} />,
   soc: <Users size={22} />,
 };
+
+/** 과목 id 접두어로 아이콘 선택 (새 시험을 추가해도 기본 아이콘으로 동작) */
+function iconFor(id: string): ReactNode {
+  if (ICONS[id]) return ICONS[id];
+  const prefix: Array<[string, ReactNode]> = [
+    ['toeic', <Globe2 key="t" size={22} />],
+    ['cl', <Monitor key="c" size={22} />],
+    ['kh', <Landmark key="k" size={22} />],
+    ['eip', <Code2 key="e" size={22} />],
+    ['jlpt', <Languages key="j" size={22} />],
+    ['police', <Shield key="p" size={22} />],
+    ['fire', <Flame key="f" size={22} />],
+  ];
+  return prefix.find(([p]) => id.startsWith(p))?.[1] ?? <Scale size={22} />;
+}
 
 const ACCENT: Record<NonNullable<ExamSubject['accent']>, string> = {
   blue: 'bg-blue-100 text-blue-700',
@@ -32,30 +47,52 @@ export function HomeScreen({ examId, onExamChange, onSelect }: { examId: string;
     <div className="space-y-5">
       <div className="rounded-2xl bg-gradient-to-br from-slate-900 to-slate-700 p-5 text-white shadow-lg">
         <div className="flex items-center justify-between">
-          <label className="text-xs font-semibold text-slate-300" htmlFor="exam-select">
-            시험 카테고리
-          </label>
+          <span className="text-xs font-semibold text-slate-300">시험 카테고리</span>
           <button type="button" onClick={openTutorial} className="flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-white/20">
             <HelpCircle size={13} /> 사용법
           </button>
         </div>
-        <div className="relative mt-1">
-          <select
-            id="exam-select"
-            value={examId}
-            onChange={(e) => onExamChange(e.target.value)}
-            className="h-12 w-full appearance-none rounded-xl border border-white/20 bg-white/10 pl-4 pr-10 text-base font-bold text-white outline-none focus:border-white/50"
-          >
-            {EXAM_CONFIGS.map((c) => (
-              <option key={c.exam_id} value={c.exam_id} className="text-slate-900">
-                {c.exam_title}
-              </option>
-            ))}
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-3 top-3.5 text-white/70" size={20} />
+        {/* 1단계: 분류 */}
+        <div role="tablist" aria-label="시험 분류" className="mt-2 grid grid-cols-3 gap-1 rounded-xl bg-white/10 p-1">
+          {EXAM_CATEGORIES.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              role="tab"
+              aria-selected={config.category === c.id}
+              onClick={() => onExamChange(examsInCategory(c.id)[0].exam_id)}
+              className={cx(
+                'h-10 rounded-lg text-sm font-black transition',
+                config.category === c.id ? 'bg-white text-slate-900 shadow' : 'text-white/75 hover:text-white',
+              )}
+            >
+              {c.name}
+            </button>
+          ))}
         </div>
+        {/* 2단계: 시험 (응시 규모가 큰 순) */}
+        {examsInCategory(config.category).length > 1 && (
+          <div className="-mx-1 mt-2 flex flex-wrap gap-1.5 px-1">
+            {examsInCategory(config.category).map((c) => (
+              <button
+                key={c.exam_id}
+                type="button"
+                onClick={() => onExamChange(c.exam_id)}
+                aria-pressed={c.exam_id === examId}
+                className={cx(
+                  'rounded-full border px-3 py-1.5 text-xs font-bold transition',
+                  c.exam_id === examId ? 'border-white bg-white text-slate-900' : 'border-white/25 text-white/85 hover:border-white/60',
+                )}
+              >
+                {c.short_title ?? c.exam_title}
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="mt-3 text-lg font-black">{config.exam_title}</div>
+        {config.notice && <p className="mt-1 text-xs leading-relaxed text-slate-300">{config.notice}</p>}
         <p className="mt-2 flex items-center gap-1.5 text-xs text-amber-200">
-          <Sparkles size={13} className="shrink-0" /> 국가고시, 자격증 시험 등 다른 시험도 추가될 예정입니다.
+          <Sparkles size={13} className="shrink-0" /> 국가고시 등 다른 시험도 계속 추가될 예정입니다.
         </p>
         <p className="mt-3 text-sm text-slate-300">과목을 선택하면 실제 시험 시간표 그대로 시계가 흐르고, EXP 모드로 문항별 풀이 시간을 기록합니다.</p>
       </div>
@@ -69,7 +106,7 @@ export function HomeScreen({ examId, onExamChange, onSelect }: { examId: string;
             className="group flex flex-col rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-blue-400 hover:shadow-md"
           >
             <div className="flex items-center justify-between">
-              <span className={cx('flex h-10 w-10 items-center justify-center rounded-xl', ACCENT[s.accent ?? 'slate'])}>{ICONS[s.id] ?? <Scale size={22} />}</span>
+              <span className={cx('flex h-10 w-10 items-center justify-center rounded-xl', ACCENT[s.accent ?? 'slate'])}>{iconFor(s.id)}</span>
               <ChevronRight size={18} className="text-slate-300 transition group-hover:text-blue-500" />
             </div>
             <div className="mt-3 text-[11px] font-semibold text-slate-500">{s.period}</div>

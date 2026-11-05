@@ -1,10 +1,9 @@
 /**
- * 내장 음원: 2019학년도 수능 방송 음원 (사용자 제공)
+ * 내장 음원: 수능 방송 음원 (2019학년도 방송본, 사용자 제공)
  * ------------------------------------------------------------
  * 시각이 아니라 "시점(준비령/본령/종료 N분 전/종료령)" 기준으로 연결합니다.
  * 2019학년도 4교시 탐구는 15:30~16:00 / 16:02~16:32 시간표였으므로
  * 현재 시간표(15:35~16:05 / 16:07~16:37)에서도 같은 시점에 재생됩니다.
- * 사용자가 직접 등록한 음원이 항상 우선합니다.
  */
 import type { ExamAudioEvent } from './audio';
 
@@ -46,17 +45,17 @@ const ROWS: Row[] = [
   [['hist'], undefined, 'warning', 'csat2019_hist_warning_1515.mp3', '4교시 한국사 종료 5분 전 (15:15)'],
   [['hist'], undefined, 'end', 'csat2019_hist_end_1520.mp3', '4교시 한국사 종료령 (15:20)'],
   // 준비령은 제1·제2선택 모두 제1선택 준비 음원 사용
-  [TAMGU, undefined, 'prep', 'csat2019_tamgu1_prep_1525.mp3', '탐구 준비령 (2019: 15:25)'],
-  [TAMGU, 'sub1', 'start', 'csat2019_tamgu1_start_1530.mp3', '탐구 제1선택 본령 (2019: 15:30)'],
-  [TAMGU, 'sub1', 'warning', 'csat2019_tamgu1_warning_1555.mp3', '탐구 제1선택 종료 5분 전 (2019: 15:55)'],
-  [TAMGU, 'sub1', 'end', 'csat2019_tamgu1_end_1600.mp3', '탐구 제1선택 종료령 (2019: 16:00)'],
-  [TAMGU, 'sub2', 'start', 'csat2019_tamgu2_start_1602.mp3', '탐구 제2선택 본령 (2019: 16:02)'],
-  [TAMGU, 'sub2', 'warning', 'csat2019_tamgu2_warning_1627.mp3', '탐구 제2선택 종료 5분 전 (2019: 16:27)'],
-  [TAMGU, 'sub2', 'end', 'csat2019_tamgu2_end_1632.mp3', '탐구 제2선택 종료령 (2019: 16:32)'],
+  [TAMGU, undefined, 'prep', 'csat2019_tamgu1_prep_1525.mp3', '탐구 준비령'],
+  [TAMGU, 'sub1', 'start', 'csat2019_tamgu1_start_1530.mp3', '탐구 제1선택 본령'],
+  [TAMGU, 'sub1', 'warning', 'csat2019_tamgu1_warning_1555.mp3', '탐구 제1선택 종료 5분 전'],
+  [TAMGU, 'sub1', 'end', 'csat2019_tamgu1_end_1600.mp3', '탐구 제1선택 종료령'],
+  [TAMGU, 'sub2', 'start', 'csat2019_tamgu2_start_1602.mp3', '탐구 제2선택 본령'],
+  [TAMGU, 'sub2', 'warning', 'csat2019_tamgu2_warning_1627.mp3', '탐구 제2선택 종료 5분 전'],
+  [TAMGU, 'sub2', 'end', 'csat2019_tamgu2_end_1632.mp3', '탐구 제2선택 종료령'],
 ];
 
 export const BUILTIN_SOUNDS: BuiltinSound[] = ROWS.flatMap(([subjects, subModeId, event, file, label]) =>
-  subjects.map((subjectId) => ({ subjectId, subModeId, event, url: fileUrl(file), label: `2019 수능 ${label}` })),
+  subjects.map((subjectId) => ({ subjectId, subModeId, event, url: fileUrl(file), label: `수능 방송 음원 · ${label}` })),
 );
 
 export function builtinFor(subjectId: string, event: ExamAudioEvent, subModeId?: string): BuiltinSound | undefined {

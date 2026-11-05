@@ -48,7 +48,7 @@ const STEPS: Step[] = [
           <Clock size={14} className="text-blue-600" /> 국어 · 08:40 ~ 10:00 · 80분 · 45문항
         </div>
         <div className="flex items-center gap-2 rounded-lg bg-white px-3 py-2 shadow-sm">
-          <Volume2 size={14} className="text-blue-600" /> 소리를 켜면 2019 수능 방송 음원으로 준비령·본령·종료령 재생
+          <Volume2 size={14} className="text-blue-600" /> 소리를 켜면 수능 방송 음원으로 준비령·본령·종료령 재생
         </div>
       </div>
     ),

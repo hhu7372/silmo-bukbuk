@@ -5,7 +5,6 @@
  */
 
 import { builtinFor, fetchBuiltin } from './builtinSounds';
-import { listSounds, pickSound } from './soundStore';
 
 export type ExamAudioEvent = 'yebi' | 'prep' | 'start' | 'warning' | 'end';
 
@@ -36,36 +35,43 @@ const NOTE_GAP: Record<ExamAudioEvent, number> = { yebi: 0.8, prep: 0.7, start: 
 class ExamAudio {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
-  /** 이번 시험에 쓸 사용자 음원 (디코딩 완료본) */
+  /** 이번 시험에 쓸 내장 음원 (디코딩 완료본) */
   private custom = new Map<ExamAudioEvent, AudioBuffer>();
   private playing: AudioBufferSourceNode | null = null;
 
-  /** 사용자 등록 음원을 미리 디코딩 (시험 시작 시 호출) */
+  /** 내장 수능 방송 음원을 미리 디코딩 (시험 시작 시 호출). 없는 시점은 기본 타종 + 안내 음성 */
   async prepareCustom(subjectId: string, subModeId?: string): Promise<number> {
     this.custom.clear();
     this.unlock();
     if (!this.ctx) return 0;
-    const all = await listSounds();
     for (const ev of AUDIO_EVENTS) {
-      // 우선순위: 사용자 과목 전용 > 사용자 공통 > 내장 음원(과목별)
-      const item = pickSound(all, subjectId, ev);
-      const builtin = item ? undefined : builtinFor(subjectId, ev, subModeId);
+      const builtin = builtinFor(subjectId, ev, subModeId);
+      if (!builtin) continue;
       try {
-        const data = item ? item.data.slice(0) : builtin ? await fetchBuiltin(builtin) : null;
-        if (data) this.custom.set(ev, await this.ctx.decodeAudioData(data));
+        this.custom.set(ev, await this.ctx.decodeAudioData(await fetchBuiltin(builtin)));
       } catch {
-        /* 디코딩/로드 불가 시 기본 타종으로 대체 */
+        /* 로드 실패 시 기본 타종으로 대체 */
       }
     }
     return this.custom.size;
   }
 
-  /** 파일을 바로 재생 (설정 화면 미리듣기) */
-  async previewFile(data: ArrayBuffer): Promise<void> {
+  /** 미리듣기: 내장 음원이 있으면 그것을, 없으면 기본 타종 + 안내 음성 */
+  async preview(event: ExamAudioEvent, subjectId: string, subModeId: string | undefined, subjectName: string, warningMin: number): Promise<void> {
     this.unlock();
-    if (!this.ctx) return;
-    const buf = await this.ctx.decodeAudioData(data.slice(0));
-    this.playBuffer(buf);
+    const builtin = builtinFor(subjectId, event, subModeId);
+    if (builtin && this.ctx) {
+      try {
+        this.playBuffer(await this.ctx.decodeAudioData(await fetchBuiltin(builtin)));
+        return;
+      } catch {
+        /* 기본 타종으로 */
+      }
+    }
+    const saved = this.custom.get(event);
+    this.custom.delete(event);
+    this.announce(event, subjectName, warningMin);
+    if (saved) this.custom.set(event, saved);
   }
 
   private playBuffer(buf: AudioBuffer): void {

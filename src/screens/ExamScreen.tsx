@@ -52,7 +52,7 @@ export function ExamScreen({ settings, onFinish }: { settings: ExamSettings; onF
   const durationMs = timing.durationMin * 60_000;
   const warnMs = timing.warningMin * 60_000;
   const initialMs = -waitMin * 60_000;
-  const total = subject.total_questions;
+  const total = settings.questionCount && settings.questionCount > 0 ? settings.questionCount : subject.total_questions;
 
   useWakeLock(true);
 

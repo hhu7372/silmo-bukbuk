@@ -1,4 +1,4 @@
-import { AlarmClock, ArrowLeft, Bell, Clock3, Crown, Eye, Gauge, Hourglass, Lock, Play, Watch } from 'lucide-react';
+import { AlarmClock, ArrowLeft, Bell, Clock3, Crown, Eye, Gauge, Hourglass, ListOrdered, Lock, Play, Watch } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { canUseExp, consumeExp, FREE_EXP_SESSIONS, getExpAccess } from '../lib/expQuota';
 import { useMemo, useState } from 'react';
@@ -8,7 +8,6 @@ import { getExamConfig, getSubject, subjectLabel } from '../data/examConfigData'
 import { examAudio } from '../lib/audio';
 import { minToHM } from '../lib/time';
 import { clampWait, MAX_CUSTOM_WAIT_MIN, resolveTiming, WAIT_OPTION_LABELS, WAIT_OPTIONS, waitMinutes } from '../lib/timing';
-import { SoundManager } from '../components/SoundManager';
 import { loadPref, savePref } from '../repository/resultRepository';
 import type { ClockModel, ClockType, ExamSettings, TimeMode, WaitOption } from '../types';
 
@@ -23,6 +22,8 @@ interface StoredPrefs {
   expMode: boolean;
   electives: Record<string, string>;
   subModes: Record<string, string>;
+  /** 과목별 사용자 지정 문항 수 (문항 수 조정 가능한 시험) */
+  questionCounts: Record<string, number>;
 }
 
 const DEFAULT_PREFS: StoredPrefs = {
@@ -36,6 +37,7 @@ const DEFAULT_PREFS: StoredPrefs = {
   expMode: true,
   electives: {},
   subModes: {},
+  questionCounts: {},
 };
 
 const MODEL_NAMES: Record<ClockModel, string> = {
@@ -47,7 +49,7 @@ const MODEL_NAMES: Record<ClockModel, string> = {
 function normalizePrefs(p: StoredPrefs): StoredPrefs {
   const clockModel: ClockModel = p.clockModel === 'B' ? 'B' : 'A';
   const waitOption: WaitOption = p.waitOption === 'none' || p.waitOption === 'prep' || p.waitOption === 'custom' ? p.waitOption : 'prep';
-  return { ...p, clockModel, waitOption, customWaitMin: clampWait(p.customWaitMin ?? DEFAULT_PREFS.customWaitMin) };
+  return { ...p, clockModel, waitOption, customWaitMin: clampWait(p.customWaitMin ?? DEFAULT_PREFS.customWaitMin), questionCounts: p.questionCounts ?? {} };
 }
 
 export function SetupScreen({ examId, subjectId, onBack, onStart }: { examId: string; subjectId: string; onBack: () => void; onStart: (s: ExamSettings) => void }) {
@@ -78,6 +80,8 @@ export function SetupScreen({ examId, subjectId, onBack, onStart }: { examId: st
 
   const update = <K extends keyof StoredPrefs>(key: K, value: StoredPrefs[K]) => setPrefs((p) => ({ ...p, [key]: value }));
   const wait = waitMinutes(prefs.waitOption, prefs.customWaitMin);
+  const adjustable = !!config.adjustable_questions;
+  const questionCount = adjustable ? Math.min(300, Math.max(1, Math.round(prefs.questionCounts[subject.id] ?? subject.total_questions))) : subject.total_questions;
   const label = subjectLabel(subject);
 
   const start = async () => {
@@ -87,7 +91,7 @@ export function SetupScreen({ examId, subjectId, onBack, onStart }: { examId: st
     if (expOn && expAccess.kind === 'member' && user) consumeExp(user.id);
     if (prefs.soundAlert) {
       examAudio.unlock(); // 사용자 제스처 안에서 오디오 잠금 해제
-      await examAudio.prepareCustom(subject.id, subModeId); // 등록한 음원 미리 디코딩
+      await examAudio.prepareCustom(subject.id, subModeId); // 내장 음원 미리 디코딩
     }
     onStart({
       examId: config.exam_id,
@@ -102,6 +106,7 @@ export function SetupScreen({ examId, subjectId, onBack, onStart }: { examId: st
       visualAlert: prefs.visualAlert,
       soundAlert: prefs.soundAlert,
       expMode: expOn,
+      questionCount: adjustable ? questionCount : undefined,
     });
   };
 
@@ -140,6 +145,37 @@ export function SetupScreen({ examId, subjectId, onBack, onStart }: { examId: st
             columns={subject.electives.length >= 3 ? 3 : 2}
           />
           <p className="mt-2 text-xs text-slate-500">오답 분석 리포트에 선택과목이 함께 기록됩니다.</p>
+        </Card>
+      )}
+
+      {adjustable && (
+        <Card>
+          <SectionTitle icon={<ListOrdered size={18} />}>문항 수</SectionTitle>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              id="question-count"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={300}
+              value={prefs.questionCounts[subject.id] ?? subject.total_questions}
+              onChange={(e) => update('questionCounts', { ...prefs.questionCounts, [subject.id]: Number(e.target.value) || 1 })}
+              className="h-10 w-24 rounded-lg border border-slate-300 px-2 text-center text-base font-bold tabular-nums outline-none focus:border-blue-500"
+            />
+            <span className="text-sm font-semibold text-slate-700">문항</span>
+            <button
+              type="button"
+              onClick={() => {
+                const next = { ...prefs.questionCounts };
+                delete next[subject.id];
+                update('questionCounts', next);
+              }}
+              className="rounded-md border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+            >
+              기본값 ({subject.total_questions})
+            </button>
+          </div>
+          <p className="mt-2 text-xs text-slate-500">회차마다 문항 수가 조금씩 다릅니다. 실제 시험지의 마지막 문항 번호에 맞춰주세요.</p>
         </Card>
       )}
 
@@ -261,16 +297,16 @@ export function SetupScreen({ examId, subjectId, onBack, onStart }: { examId: st
             description="예비령 · 준비령 · 본령 · 종료 전 · 종료령 타종 및 안내 음성"
           />
           {prefs.soundAlert && (
-            <>
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                onClick={() => examAudio.announce('start', label, subject.warning_min)}
+                onClick={() => void examAudio.preview('start', subject.id, subModeId, label, subject.warning_min)}
                 className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
               >
-                ▶ 기본 본령 소리 미리듣기
+                ▶ 본령 소리 미리듣기
               </button>
-              <SoundManager subjectId={subject.id} subModeId={subModeId} subjectLabel={label} warningMin={subject.warning_min} />
-            </>
+              {config.category === 'csat' && <span className="text-[11px] text-slate-500">수능 방송 음원으로 재생됩니다.</span>}
+            </div>
           )}
         </div>
       </Card>
@@ -336,7 +372,7 @@ export function SetupScreen({ examId, subjectId, onBack, onStart }: { examId: st
           <div className="text-sm text-blue-900">
             <div className="font-bold">
               {label}
-              {timing.subModeName ? ` · ${timing.subModeName.split(' ')[0]}` : ''} · {timing.durationMin}분 · {subject.total_questions}문항
+              {timing.subModeName ? ` · ${timing.subModeName.split(' ')[0]}` : ''} · {timing.durationMin}분 · {questionCount}문항
             </div>
             <ul className="mt-1 space-y-0.5 text-xs tabular-nums">
               <li>

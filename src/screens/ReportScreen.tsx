@@ -34,7 +34,9 @@ export function ReportScreen({
 }) {
   const { user, openLogin } = useApp();
   const subject = getSubject(result.examId, result.subjectId);
-  const sections = subject?.sections ?? [{ id: 'all', name: '전체', q_start: 1, q_end: result.totalQuestions }];
+  const sections = (subject?.sections ?? [{ id: 'all', name: '전체', q_start: 1, q_end: result.totalQuestions }])
+    .filter((sec) => sec.q_start <= result.totalQuestions)
+    .map((sec) => ({ ...sec, q_end: Math.min(sec.q_end, result.totalQuestions) }));
 
   const [tab, setTab] = useState<Tab>('score');
   const [scoreText, setScoreText] = useState(result.score === null ? '' : String(result.score));

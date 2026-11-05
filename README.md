@@ -34,6 +34,8 @@ npm run preview    # 빌드 결과 미리보기
 - **베타 무료 모드**: `src/config/site.ts` 의 `betaFree: true` 동안 로그인·Pro 토글이 숨겨지고 EXP 모드가 모두에게 무제한입니다. 정식 오픈 때 `false` 로 바꾸면 회원 10회 / Pro 무제한 정책으로 돌아갑니다(실제 회원·결제 서버 연동 필요).
 - **광고(AdSense)**: 환경 변수 `VITE_ADSENSE_CLIENT`(ca-pub-…)를 넣고 빌드하면 광고 스크립트·소유 확인 메타·`ads.txt` 가 자동으로 들어갑니다. 승인 후 광고 단위 ID 를 `VITE_ADSENSE_SLOT_LEFT / RIGHT / MOBILE` 에 넣으면 자리표시자가 실제 광고로 바뀝니다.
 - **개인정보 처리방침**: 빌드 시 `privacy.html` 이 생성됩니다. 문의 이메일은 `CONTACT_EMAIL`.
+- **의견·문의 접수**: `VITE_FORM_ENDPOINT` 에 Formspree 같은 폼 접수 주소를 넣으면 사이트에서 바로 전송됩니다. 없으면 `CONTACT_EMAIL` 로 메일 앱을 여는 방식으로 대체됩니다.
+- **시험 분류**: `src/data/examConfigData.ts` 의 `EXAM_CATEGORIES`(대수능·자격증·공시)와 각 시험의 `category`, `popularity`(분류 안 정렬용 대략적 연간 응시 규모)로 홈 화면 목차가 만들어집니다.
 - **도메인**: `SITE_URL` 설정 후 재배포.
 
 전체 환경 변수 목록은 `.env.example` 참고.

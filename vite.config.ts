@@ -68,24 +68,30 @@ const PRIVACY_HTML = `<!doctype html>
 <p class="muted">시행일: 2026년 11월 5일</p>
 <p>실모벅벅(이하 "서비스")은 이용자의 개인정보를 소중히 여기며, 아래와 같이 처리합니다.</p>
 <h2>1. 수집하는 정보</h2>
-<p>서비스는 회원가입을 받지 않으며, 이름·연락처 등 개인을 식별할 수 있는 정보를 서버로 수집하지 않습니다.</p>
+<p>서비스는 회원가입을 받지 않으며, 의견·문의를 보낼 때 이용자가 직접 입력한 정보 외에는 개인을 식별할 수 있는 정보를 수집하지 않습니다.</p>
 <h2>2. 이용자 기기에 저장되는 정보</h2>
 <ul>
-<li>시험 설정, 응시 기록(점수·오답·문항별 시간), 모의고사 이름, 직접 등록한 음원 파일은 이용자의 브라우저(localStorage, IndexedDB)에만 저장됩니다.</li>
+<li>시험 설정, 응시 기록(점수·오답·문항별 시간), 모의고사 이름은 이용자의 브라우저(localStorage)에만 저장됩니다.</li>
 <li>이 정보는 서비스 운영자에게 전송되지 않으며, 브라우저의 사이트 데이터 삭제 또는 서비스의 [설정 → 전체 기록 삭제]로 언제든 지울 수 있습니다.</li>
 </ul>
-<h2>3. 광고와 쿠키</h2>
+<h2>3. 의견·문의 시 받는 정보</h2>
+<ul>
+<li>의견 보내기·문의하기를 이용하면 작성한 내용, 선택한 분류, (입력한 경우) 답변 받을 이메일, 접속 브라우저 정보가 전송됩니다.</li>
+<li>목적: 문의 답변과 서비스 개선. 이메일은 답변이 끝나면 지체 없이 삭제합니다.</li>
+<li>전송은 폼 접수 서비스(Formspree 등)를 통해 이루어지며, 해당 서비스에 처리를 맡깁니다.</li>
+</ul>
+<h2>4. 광고와 쿠키</h2>
 <ul>
 <li>서비스는 Google AdSense 광고를 게재할 수 있습니다. Google을 포함한 제3자 광고 사업자는 쿠키를 사용하여 이용자의 이 사이트 및 다른 사이트 방문 기록을 바탕으로 광고를 게재합니다.</li>
 <li>Google의 광고 쿠키 사용으로 Google과 파트너는 이용자의 방문 기록을 바탕으로 적절한 광고를 표시할 수 있습니다.</li>
 <li>이용자는 <a href="https://adssettings.google.com" target="_blank" rel="noopener">Google 광고 설정</a>에서 맞춤 광고를 해제할 수 있으며, <a href="https://www.aboutads.info" target="_blank" rel="noopener">www.aboutads.info</a>에서 제3자 광고 쿠키를 거부할 수 있습니다.</li>
 <li>자세한 내용은 <a href="https://policies.google.com/technologies/ads?hl=ko" target="_blank" rel="noopener">Google 광고 정책</a>을 참고하세요.</li>
 </ul>
-<h2>4. 외부 서비스</h2>
+<h2>5. 외부 서비스</h2>
 <p>글꼴 표시를 위해 Google Fonts를 사용하며, 이 과정에서 Google 서버에 IP 주소 등 기본 접속 정보가 전달될 수 있습니다.</p>
-<h2>5. 방침 변경</h2>
+<h2>6. 방침 변경</h2>
 <p>이 방침이 바뀌면 이 페이지에 게시합니다.</p>
-<h2>6. 문의</h2>
+<h2>7. 문의</h2>
 {{CONTACT}}
 </body></html>
 `;
@@ -95,6 +101,10 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   return {
     base: './',
+    define: {
+      // 개인정보 처리방침과 문의하기에서 같은 이메일을 쓰도록 CONTACT_EMAIL 하나로 관리
+      'import.meta.env.VITE_CONTACT_EMAIL': JSON.stringify(env.CONTACT_EMAIL || process.env.CONTACT_EMAIL || ''),
+    },
     plugins: [
       react(),
       siteMeta(env.SITE_URL || process.env.SITE_URL),

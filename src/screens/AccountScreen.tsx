@@ -1,4 +1,4 @@
-import { Crown, Download, LogIn, LogOut, MonitorSmartphone, Trash2, UserRound } from 'lucide-react';
+import { Crown, Download, LogIn, LogOut, Mail, MessageSquareHeart, MonitorSmartphone, Trash2, UserRound } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { confirmAsync } from '../components/ConfirmHost';
 import { Card, SectionTitle, Toggle } from '../components/ui';
@@ -6,7 +6,7 @@ import { FREE_EXP_SESSIONS, getExpAccess } from '../lib/expQuota';
 import { SITE } from '../config/site';
 import { useApp } from '../context/AppContext';
 
-export function AccountScreen() {
+export function AccountScreen({ onFeedback }: { onFeedback: (kind: 'feedback' | 'inquiry') => void }) {
   const { user, openLogin, logout, isPro, setPro, repository, openTutorial, showDebug, setShowDebug } = useApp();
   const [count, setCount] = useState<number | null>(null);
   const wakeLockSupported = typeof navigator !== 'undefined' && 'wakeLock' in navigator;
@@ -106,6 +106,19 @@ export function AccountScreen() {
           </button>
         </div>
       </Card>
+
+      <div className="grid grid-cols-2 gap-2">
+        <button type="button" onClick={() => onFeedback('feedback')} className="flex flex-col items-start rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm hover:border-blue-400">
+          <MessageSquareHeart size={22} className="text-rose-500" />
+          <span className="mt-2 text-sm font-black text-slate-900">의견 보내기</span>
+          <span className="text-xs text-slate-500">개선 아이디어, 불편한 점</span>
+        </button>
+        <button type="button" onClick={() => onFeedback('inquiry')} className="flex flex-col items-start rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm hover:border-blue-400">
+          <Mail size={22} className="text-blue-600" />
+          <span className="mt-2 text-sm font-black text-slate-900">문의하기</span>
+          <span className="text-xs text-slate-500">사용 방법, 오류 신고</span>
+        </button>
+      </div>
 
       <Card>
         <SectionTitle>테스트 도구</SectionTitle>

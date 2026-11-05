@@ -140,6 +140,7 @@ export function Layout({
   tab,
   onTab,
   onBack,
+  onFeedback,
   showNav,
   immersive,
 }: {
@@ -147,6 +148,7 @@ export function Layout({
   tab: NavTab;
   onTab: (t: NavTab) => void;
   onBack?: () => void;
+  onFeedback?: (kind: 'feedback' | 'inquiry') => void;
   showNav: boolean;
   /** 시험 진행 화면 등 */
   immersive?: boolean;
@@ -175,6 +177,16 @@ export function Layout({
               <a href="./privacy.html" className="underline-offset-2 hover:text-slate-600 hover:underline">
                 개인정보 처리방침
               </a>
+              {onFeedback && (
+                <>
+                  <button type="button" onClick={() => onFeedback('feedback')} className="underline-offset-2 hover:text-slate-600 hover:underline">
+                    의견 보내기
+                  </button>
+                  <button type="button" onClick={() => onFeedback('inquiry')} className="underline-offset-2 hover:text-slate-600 hover:underline">
+                    문의하기
+                  </button>
+                </>
+              )}
               {SITE.betaFree && <span>베타 서비스</span>}
             </footer>
           )}
