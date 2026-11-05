@@ -1,0 +1,141 @@
+import { ArrowLeft, BarChart3, Crown, Timer, UserRound } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { useApp } from '../context/AppContext';
+import { cx } from './ui';
+
+export type NavTab = 'home' | 'history' | 'account';
+
+function AdSlot({ label, className }: { label: string; className?: string }) {
+  return (
+    <div
+      className={cx(
+        'flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 text-center text-slate-400',
+        className,
+      )}
+      data-ad-slot={label}
+    >
+      <span className="text-[10px] font-bold uppercase tracking-widest">Advertisement</span>
+      <span className="mt-1 text-xs font-semibold">{label}</span>
+    </div>
+  );
+}
+
+function Header({ onBack }: { onBack?: () => void }) {
+  const { isPro, setPro, user } = useApp();
+  return (
+    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur">
+      <div className="mx-auto flex h-14 max-w-[1440px] items-center justify-between gap-3 px-4">
+        <div className="flex min-w-0 items-center gap-2">
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="-ml-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-700 hover:bg-slate-100"
+              aria-label="뒤로가기"
+              title="뒤로가기"
+            >
+              <ArrowLeft size={22} />
+            </button>
+          )}
+          <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" className="h-8 w-8 shrink-0" width={32} height={32} />
+          <div className="min-w-0 leading-tight">
+            <div className="truncate text-base font-black tracking-tight text-slate-900">실모벅벅</div>
+            <div className="truncate text-[11px] text-slate-500">모의고사 타이머 · {user ? `${user.name}님` : '비회원'}</div>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setPro(!isPro)}
+          className={cx(
+            'flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold transition',
+            isPro ? 'border-amber-400 bg-amber-50 text-amber-700' : 'border-slate-300 bg-white text-slate-600',
+          )}
+          aria-pressed={isPro}
+          title="Pro 구독 시뮬레이션: 광고 제거 + EXP 모드 무제한"
+        >
+          <Crown size={14} className={isPro ? 'fill-amber-400 text-amber-500' : ''} />
+          Pro 모드 {isPro ? 'ON' : 'OFF'}
+        </button>
+      </div>
+    </header>
+  );
+}
+
+function BottomNav({ tab, onTab }: { tab: NavTab; onTab: (t: NavTab) => void }) {
+  const items: Array<{ id: NavTab; label: string; icon: ReactNode }> = [
+    { id: 'home', label: '타이머 홈', icon: <Timer size={20} /> },
+    { id: 'history', label: '누적 기록 및 오답 통계', icon: <BarChart3 size={20} /> },
+    { id: 'account', label: '로그인/계정 설정', icon: <UserRound size={20} /> },
+  ];
+  return (
+    <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)]">
+      <div className="mx-auto grid h-16 max-w-3xl grid-cols-3">
+        {items.map((it) => (
+          <button
+            key={it.id}
+            type="button"
+            onClick={() => onTab(it.id)}
+            className={cx(
+              'flex flex-col items-center justify-center gap-0.5 px-1 text-[11px] font-semibold sm:text-xs',
+              tab === it.id ? 'text-blue-700' : 'text-slate-500 hover:text-slate-800',
+            )}
+          >
+            {it.icon}
+            <span className="truncate">{it.label}</span>
+          </button>
+        ))}
+      </div>
+    </nav>
+  );
+}
+
+export function Layout({
+  children,
+  tab,
+  onTab,
+  onBack,
+  showNav,
+  immersive,
+}: {
+  children: ReactNode;
+  tab: NavTab;
+  onTab: (t: NavTab) => void;
+  onBack?: () => void;
+  showNav: boolean;
+  /** 시험 진행 화면 등 */
+  immersive?: boolean;
+}) {
+  const { isPro } = useApp();
+  const showAds = !isPro;
+  // 하단 여백: 네비(64px) + 모바일 띠 배너(50px)
+  const bottomPad = cx(showNav ? 'pb-20' : 'pb-6', showAds && (showNav ? 'max-lg:pb-[136px]' : 'max-lg:pb-[72px]'));
+
+  return (
+    <div className={cx('min-h-screen', immersive && isPro ? 'bg-slate-950' : 'bg-slate-100')}>
+      <Header onBack={onBack} />
+      <div className="mx-auto flex w-full max-w-[1440px] justify-center gap-6 lg:px-4">
+        {showAds && (
+          <aside className="hidden w-[160px] shrink-0 pt-6 lg:block xl:w-[300px]">
+            <div className="sticky top-20">
+              <AdSlot label="AdSense Left Slot" className="h-[600px] w-full" />
+            </div>
+          </aside>
+        )}
+        <main className={cx('mx-auto w-full max-w-3xl min-w-0 px-4 pt-4 sm:pt-6', bottomPad)}>{children}</main>
+        {showAds && (
+          <aside className="hidden w-[160px] shrink-0 pt-6 lg:block xl:w-[300px]">
+            <div className="sticky top-20">
+              <AdSlot label="AdSense Right Slot" className="h-[600px] w-full" />
+            </div>
+          </aside>
+        )}
+      </div>
+      {showAds && (
+        <div className={cx('fixed inset-x-0 z-20 bg-white px-2 lg:hidden', showNav ? 'bottom-16' : 'bottom-0')}>
+          <AdSlot label="AdSense Mobile Bottom Banner (320x50)" className="mx-auto h-[50px] max-w-3xl rounded-none border-x-0" />
+        </div>
+      )}
+      {showNav && <BottomNav tab={tab} onTab={onTab} />}
+    </div>
+  );
+}

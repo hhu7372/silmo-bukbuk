@@ -1,0 +1,81 @@
+import type { ClockModel, ClockType, TimeMode } from '../types';
+import { msToMMSS, secondsToClock } from '../lib/time';
+import { AnalogClock } from './AnalogClock';
+import { cx } from './ui';
+
+export interface ClockDisplayProps {
+  clockType: ClockType;
+  timeMode: TimeMode;
+  model: ClockModel;
+  /** 자정 기준 현재 (가상) 시각, 초 */
+  clockSeconds: number;
+  /** 남은 시험 시간 ms */
+  remainingMs: number;
+  /** 전체 시험 시간 ms */
+  durationMs: number;
+  waiting: boolean;
+  warning: boolean;
+  subjectLabel: string;
+  /** 문항 그리드와 한 화면에 들어오도록 작게 */
+  compact?: boolean;
+}
+
+export function ClockDisplay(p: ClockDisplayProps) {
+  const remainingMin = p.remainingMs / 60000;
+
+  if (p.clockType === 'digital') {
+    const main = p.timeMode === 'real' ? secondsToClock(p.clockSeconds) : msToMMSS(p.remainingMs);
+    const sub = p.timeMode === 'real' ? `남은 시간 ${msToMMSS(p.remainingMs)}` : `현재 시각 ${secondsToClock(p.clockSeconds)}`;
+    return (
+      <div
+        className={cx(
+          'flex w-full flex-col items-center justify-center rounded-3xl border shadow-inner', p.compact ? 'h-full px-2 py-4' : 'px-4 py-8 sm:py-12',
+          p.warning ? 'border-red-500/60 bg-red-950 text-red-100' : 'border-slate-200 bg-white text-slate-900',
+        )}
+      >
+        <div className="text-xs font-bold uppercase tracking-[0.3em] opacity-60">{p.timeMode === 'real' ? 'EXAM CLOCK' : 'COUNTDOWN'}</div>
+        <div className={cx('mt-2 font-mono font-black tabular-nums', p.compact ? (p.timeMode === 'real' ? 'text-2xl sm:text-5xl' : 'text-4xl sm:text-6xl') : 'text-6xl sm:text-8xl', p.warning && 'text-red-400')}>{main}</div>
+        <div className={cx('mt-3 font-mono tabular-nums opacity-70', p.compact ? 'text-[11px] sm:text-sm' : 'text-sm')}>{sub}</div>
+        <div className="mt-4 h-2 w-full max-w-md overflow-hidden rounded-full bg-black/10">
+          <div
+            className={cx('h-full rounded-full transition-[width]', p.warning ? 'bg-red-500' : 'bg-blue-500')}
+            style={{ width: `${Math.max(0, Math.min(100, (p.remainingMs / p.durationMs) * 100))}%` }}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // 아날로그
+  let displaySeconds: number;
+  let band: { fromDeg: number; toDeg: number } | undefined;
+  if (p.timeMode === 'real') {
+    displaySeconds = p.clockSeconds;
+    const minAngle = ((p.clockSeconds / 60) % 60) * 6;
+    // 지금부터 종료 시각까지 분침이 지나갈 구간 (최대 60분)
+    band = p.waiting ? undefined : { fromDeg: minAngle, toDeg: minAngle + Math.min(remainingMin, 60) * 6 };
+  } else {
+    // 카운트다운: 바늘이 남은 시간을 가리키고, 12시부터 남은 분(최대 60)만큼 링 표시 (타임 타이머 방식)
+    displaySeconds = p.remainingMs / 1000;
+    band = { fromDeg: 0, toDeg: Math.min(remainingMin, 60) * 6 };
+  }
+
+  return (
+    <div className="flex w-full flex-col items-center">
+      <div className={cx('aspect-square w-full', p.compact ? 'max-w-[340px]' : 'max-w-[min(78vw,420px)]')}>
+        <AnalogClock
+          displaySeconds={displaySeconds}
+          model={p.model}
+          band={band}
+          warning={p.warning}
+          caption={p.timeMode === 'real' ? p.subjectLabel : '남은 시간'}
+        />
+      </div>
+      <div className={cx('mt-2 flex flex-wrap items-center justify-center gap-x-3 font-mono font-semibold tabular-nums', p.compact ? 'text-[11px] sm:text-sm' : 'text-sm', p.warning ? 'text-red-300' : 'text-slate-500')}>
+        <span>{secondsToClock(p.clockSeconds)}</span>
+        <span className={cx('opacity-40', p.compact && 'hidden sm:inline')}>|</span>
+        <span>남은 {msToMMSS(p.remainingMs)}</span>
+      </div>
+    </div>
+  );
+}
