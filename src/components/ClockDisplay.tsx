@@ -74,10 +74,10 @@ export function ClockDisplay(p: ClockDisplayProps) {
           caption={p.timeMode === 'real' ? p.subjectLabel : '남은 시간'}
         />
       </div>
-      <div className={cx('mt-2 flex flex-wrap items-center justify-center gap-x-3 font-mono font-semibold tabular-nums', p.compact ? 'text-[11px] sm:text-sm' : 'text-sm', p.warning ? 'text-red-300' : 'text-slate-500')}>
-        <span>{secondsToClock(p.clockSeconds)}</span>
-        <span className={cx('opacity-40', p.compact && 'hidden sm:inline')}>|</span>
-        <span>남은 {msToMMSS(p.remainingMs)}</span>
+      {/* 현재 시각은 시계판에 있으므로 아래에는 남은 시간만 크게 */}
+      <div className={cx('mt-2 flex items-baseline justify-center gap-2 tabular-nums', p.warning ? 'text-red-500' : 'text-slate-700')}>
+        <span className={cx('font-semibold', p.compact ? 'text-xs sm:text-sm' : 'text-sm')}>남은 시간</span>
+        <span className={cx('font-mono font-black', p.compact ? 'text-lg sm:text-2xl lg:text-3xl' : 'text-2xl sm:text-3xl')}>{msToMMSS(p.remainingMs)}</span>
       </div>
     </div>
   );
