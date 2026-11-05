@@ -5,6 +5,7 @@ import { confirmAsync } from '../components/ConfirmHost';
 import { Card, SectionTitle, Stat, cx } from '../components/ui';
 import { useApp } from '../context/AppContext';
 import { getExamConfig, getSubject, subjectLabel } from '../data/examConfigData';
+import { SITE } from '../config/site';
 import { GroupEditor } from '../components/GroupEditor';
 import { DEFAULT_VIEW, groupOf, sortResults, UNGROUPED, type HistoryView } from '../lib/recordGroups';
 import { loadPref, savePref } from '../repository/resultRepository';
@@ -133,7 +134,7 @@ export function HistoryScreen({ examId, onOpen }: { examId: string; onOpen: (r: 
         <p className="text-xs text-slate-500">{config.exam_title}</p>
       </div>
 
-      {!user && (
+      {!user && !SITE.betaFree && (
         <div className="flex items-center justify-between gap-2 rounded-xl bg-slate-200/70 px-3 py-2 text-xs text-slate-700">
           <span>비회원 기록은 이 브라우저에만 저장됩니다.</span>
           <button type="button" onClick={openLogin} className="shrink-0 font-bold text-blue-700">

@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 import { createResultRepository, loadPrimitive, savePref, type ExamResultRepository } from '../repository/resultRepository';
 import type { AppUser } from '../types';
+import { SITE } from '../config/site';
 
 interface AppContextValue {
   isPro: boolean;
@@ -82,7 +83,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<AppContextValue>(
     () => ({
-      isPro,
+      isPro: SITE.betaFree ? false : isPro,
       setPro,
       user,
       login,

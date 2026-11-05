@@ -287,9 +287,10 @@ export function SetupScreen({ examId, subjectId, onBack, onStart }: { examId: st
         <div
           className={cx(
             'mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl px-3 py-2 text-xs',
-            expAccess.kind === 'pro' ? 'bg-amber-50 text-amber-900' : expAllowed ? 'bg-blue-50 text-blue-900' : 'bg-slate-100 text-slate-700',
+            expAccess.kind === 'beta' ? 'bg-emerald-50 text-emerald-900' : expAccess.kind === 'pro' ? 'bg-amber-50 text-amber-900' : expAllowed ? 'bg-blue-50 text-blue-900' : 'bg-slate-100 text-slate-700',
           )}
         >
+          {expAccess.kind === 'beta' && <span className="font-semibold">🎉 베타 기간 무료 · EXP 모드를 횟수 제한 없이 쓸 수 있습니다.</span>}
           {expAccess.kind === 'pro' && (
             <span className="flex items-center gap-1 font-semibold">
               <Crown size={14} className="fill-amber-400 text-amber-500" /> Pro 구독 중 · EXP 모드 무제한

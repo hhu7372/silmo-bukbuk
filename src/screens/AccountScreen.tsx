@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { confirmAsync } from '../components/ConfirmHost';
 import { Card, SectionTitle, Toggle } from '../components/ui';
 import { FREE_EXP_SESSIONS, getExpAccess } from '../lib/expQuota';
+import { SITE } from '../config/site';
 import { useApp } from '../context/AppContext';
 
 export function AccountScreen() {
@@ -36,9 +37,18 @@ export function AccountScreen() {
   return (
     <div className="space-y-4">
       <h1 className="flex items-center gap-2 text-xl font-black text-slate-900">
-        <UserRound size={22} /> 로그인 / 계정 설정
+        <UserRound size={22} /> {SITE.betaFree ? '설정' : '로그인 / 계정 설정'}
       </h1>
 
+      {SITE.betaFree ? (
+        <Card className="border-emerald-200 bg-emerald-50">
+          <div className="text-base font-black text-emerald-900">🎉 베타 기간 무료</div>
+          <p className="mt-1 text-sm text-emerald-900/80">
+            지금은 베타 기간이라 로그인 없이 EXP 모드(문항별 시간 측정)를 포함한 모든 기능을 무료로 쓸 수 있습니다. 기록은 이 브라우저에 저장되니, 같은 기기·같은 브라우저에서 이용해주세요.
+          </p>
+        </Card>
+      ) : (
+        <>
       <Card>
         {user ? (
           <div className="flex items-center justify-between gap-3">
@@ -80,6 +90,9 @@ export function AccountScreen() {
           })()}
         </div>
       </Card>
+
+        </>
+      )}
 
       <Card>
         <SectionTitle>데이터 관리</SectionTitle>

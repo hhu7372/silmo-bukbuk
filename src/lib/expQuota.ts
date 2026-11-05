@@ -6,9 +6,12 @@
  * 현재는 브라우저(localStorage)에 기록하는 데모 구현입니다.
  * 실제 서비스에서는 서버(Supabase 등)에서 계정 단위로 차감해야 우회할 수 없습니다.
  */
+import { SITE } from '../config/site';
+
 export const FREE_EXP_SESSIONS = 10;
 
 export type ExpAccess =
+  | { kind: 'beta' }
   | { kind: 'guest' }
   | { kind: 'member'; remaining: number; used: number }
   | { kind: 'exhausted'; used: number }
@@ -36,6 +39,7 @@ export function consumeExp(userId: string): number {
 }
 
 export function getExpAccess(userId: string | null, isPro: boolean): ExpAccess {
+  if (SITE.betaFree) return { kind: 'beta' };
   if (isPro) return { kind: 'pro' };
   if (!userId) return { kind: 'guest' };
   const used = getExpUsed(userId);
@@ -44,5 +48,5 @@ export function getExpAccess(userId: string | null, isPro: boolean): ExpAccess {
 }
 
 export function canUseExp(a: ExpAccess): boolean {
-  return a.kind === 'pro' || a.kind === 'member';
+  return a.kind === 'beta' || a.kind === 'pro' || a.kind === 'member';
 }

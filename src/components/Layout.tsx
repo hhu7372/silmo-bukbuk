@@ -1,11 +1,49 @@
-import { ArrowLeft, BarChart3, Crown, Timer, UserRound } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { ArrowLeft, BarChart3, Crown, Settings, Timer, UserRound } from 'lucide-react';
+import { useEffect, useRef, type ReactNode } from 'react';
+import { ADS, SITE } from '../config/site';
 import { useApp } from '../context/AppContext';
 import { cx } from './ui';
 
 export type NavTab = 'home' | 'history' | 'account';
 
-function AdSlot({ label, className }: { label: string; className?: string }) {
+declare global {
+  interface Window {
+    adsbygoogle?: unknown[];
+  }
+}
+
+/** AdSense 광고 단위. 게시자 ID와 슬롯 ID가 설정되지 않았으면 자리표시자를 보여줌 */
+function AdSlot({ label, slot, className, size }: { label: string; slot: string; className?: string; size?: [number, number] }) {
+  const pushed = useRef(false);
+  const live = Boolean(ADS.client && slot);
+  useEffect(() => {
+    if (!live || pushed.current) return;
+    pushed.current = true;
+    try {
+      (window.adsbygoogle = window.adsbygoogle || []).push({});
+    } catch {
+      /* 광고 차단기 등 */
+    }
+  }, [live]);
+
+  if (live) {
+    return (
+      <div className={cx('overflow-hidden', className)}>
+        {size ? (
+          <ins className="adsbygoogle mx-auto" style={{ display: 'block', width: size[0], height: size[1] }} data-ad-client={ADS.client} data-ad-slot={slot} />
+        ) : (
+          <ins
+            className="adsbygoogle"
+            style={{ display: 'block', width: '100%', height: '100%' }}
+            data-ad-client={ADS.client}
+            data-ad-slot={slot}
+            data-ad-format="auto"
+            data-full-width-responsive="true"
+          />
+        )}
+      </div>
+    );
+  }
   return (
     <div
       className={cx(
@@ -40,9 +78,14 @@ function Header({ onBack }: { onBack?: () => void }) {
           <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" className="h-8 w-8 shrink-0" width={32} height={32} />
           <div className="min-w-0 leading-tight">
             <div className="truncate text-base font-black tracking-tight text-slate-900">실모벅벅</div>
-            <div className="truncate text-[11px] text-slate-500">모의고사 타이머 · {user ? `${user.name}님` : '비회원'}</div>
+            <div className="truncate text-[11px] text-slate-500">모의고사 타이머{!SITE.betaFree && (user ? ` · ${user.name}님` : ' · 비회원')}</div>
           </div>
         </div>
+        {SITE.betaFree ? (
+          <span className="shrink-0 rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700" title="베타 기간에는 모든 기능을 무료로 쓸 수 있습니다">
+            BETA · 전 기능 무료
+          </span>
+        ) : (
         <button
           type="button"
           onClick={() => setPro(!isPro)}
@@ -56,6 +99,7 @@ function Header({ onBack }: { onBack?: () => void }) {
           <Crown size={14} className={isPro ? 'fill-amber-400 text-amber-500' : ''} />
           Pro 모드 {isPro ? 'ON' : 'OFF'}
         </button>
+        )}
       </div>
     </header>
   );
@@ -65,7 +109,9 @@ function BottomNav({ tab, onTab }: { tab: NavTab; onTab: (t: NavTab) => void }) 
   const items: Array<{ id: NavTab; label: string; icon: ReactNode }> = [
     { id: 'home', label: '타이머 홈', icon: <Timer size={20} /> },
     { id: 'history', label: '누적 기록 및 오답 통계', icon: <BarChart3 size={20} /> },
-    { id: 'account', label: '로그인/계정 설정', icon: <UserRound size={20} /> },
+    SITE.betaFree
+      ? { id: 'account', label: '설정', icon: <Settings size={20} /> }
+      : { id: 'account', label: '로그인/계정 설정', icon: <UserRound size={20} /> },
   ];
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)]">
@@ -117,22 +163,33 @@ export function Layout({
         {showAds && (
           <aside className="hidden w-[160px] shrink-0 pt-6 lg:block xl:w-[300px]">
             <div className="sticky top-20">
-              <AdSlot label="AdSense Left Slot" className="h-[600px] w-full" />
+              <AdSlot label="AdSense Left Slot" slot={ADS.slots.left} className="h-[600px] w-full" />
             </div>
           </aside>
         )}
-        <main className={cx('mx-auto w-full max-w-3xl min-w-0 px-4 pt-4 sm:pt-6', bottomPad)}>{children}</main>
+        <main className={cx('mx-auto w-full max-w-3xl min-w-0 px-4 pt-4 sm:pt-6', bottomPad)}>
+          {children}
+          {showNav && (
+            <footer className="mt-10 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] text-slate-400">
+              <span>© {new Date().getFullYear()} {SITE.name}</span>
+              <a href="./privacy.html" className="underline-offset-2 hover:text-slate-600 hover:underline">
+                개인정보 처리방침
+              </a>
+              {SITE.betaFree && <span>베타 서비스</span>}
+            </footer>
+          )}
+        </main>
         {showAds && (
           <aside className="hidden w-[160px] shrink-0 pt-6 lg:block xl:w-[300px]">
             <div className="sticky top-20">
-              <AdSlot label="AdSense Right Slot" className="h-[600px] w-full" />
+              <AdSlot label="AdSense Right Slot" slot={ADS.slots.right} className="h-[600px] w-full" />
             </div>
           </aside>
         )}
       </div>
       {showAds && (
         <div className={cx('fixed inset-x-0 z-20 bg-white px-2 lg:hidden', showNav ? 'bottom-16' : 'bottom-0')}>
-          <AdSlot label="AdSense Mobile Bottom Banner (320x50)" className="mx-auto h-[50px] max-w-3xl rounded-none border-x-0" />
+          <AdSlot label="AdSense Mobile Bottom Banner (320x50)" slot={ADS.slots.mobile} size={[320, 50]} className="mx-auto h-[50px] max-w-3xl rounded-none border-x-0" />
         </div>
       )}
       {showNav && <BottomNav tab={tab} onTab={onTab} />}

@@ -1,6 +1,7 @@
 import { BarChart3, CheckCircle2, ChevronLeft, ChevronRight, ClipboardCheck, Clock, Crown, FolderKanban, PauseCircle, Settings2, Timer, Volume2, X } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useApp } from '../context/AppContext';
+import { SITE } from '../config/site';
 import { cx } from './ui';
 
 interface Step {
@@ -56,7 +57,7 @@ const STEPS: Step[] = [
     icon: <CheckCircle2 size={26} />,
     tint: 'bg-emerald-600 text-white',
     title: 'EXP 모드로 문항별 시간 측정',
-    body: '한 문제를 풀 때마다 "풀이 완료", 막히면 "보류"를 누르세요. 건너뛰었다가 돌아와 푼 시간까지 나눠서 기록됩니다. 회원은 10회 무료, Pro 구독은 무제한입니다.',
+    body: '한 문제를 풀 때마다 "풀이 완료", 막히면 "보류"를 누르세요. 건너뛰었다가 돌아와 푼 시간까지 나눠서 기록됩니다.' + (SITE.betaFree ? ' 베타 기간에는 무료로 무제한 쓸 수 있습니다.' : ' 회원은 10회 무료, Pro 구독은 무제한입니다.'),
     visual: (
       <div className="space-y-2">
         <div className="flex gap-2">
