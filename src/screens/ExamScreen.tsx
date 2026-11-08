@@ -572,29 +572,40 @@ export function ExamScreen({ settings, onFinish }: { settings: ExamSettings; onF
 
                   {current ? (
                     <>
-                      {/* 보류(위) → 풀이 완료(아래, 가장 크게) */}
-                      <button
-                        type="button"
-                        onClick={doSkip}
-                        disabled={locked}
-                        className="mt-2 flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-2xl border-2 border-orange-400 bg-orange-50 px-2 text-xs font-bold text-orange-700 transition hover:bg-orange-100 active:scale-[0.98] disabled:opacity-40 sm:mt-2 sm:text-sm"
-                      >
-                        <PauseCircle size={16} className="shrink-0" />
-                        <span>
-                          [현재 {current.questionNo}번] 보류<span className="hidden sm:inline"> 후 넘어가기</span> (Skip)
-                        </span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={doComplete}
-                        disabled={locked}
-                        className="mt-1.5 flex min-h-[56px] w-full flex-1 items-center justify-center gap-1.5 rounded-2xl bg-blue-600 px-2 text-sm font-black text-white shadow-lg shadow-blue-600/30 transition hover:bg-blue-700 active:scale-[0.98] disabled:opacity-40 sm:mt-2 sm:min-h-[64px] sm:text-lg lg:min-h-[72px]"
-                      >
-                        <CheckCircle2 size={20} className="shrink-0" />
-                        <span>[현재 {current.questionNo}번] 풀이 완료 → 다음 문제</span>
-                      </button>
-
+                      {/*
+                       * 보류 : 풀이 완료 = 3 : 4, 같은 높이로 좌우 배치
+                       * 풀이 완료는 화면 바깥쪽(손이 닿는 쪽), 보류는 시계 쪽. [좌우 바꾸기]를 따라 같이 바뀜
+                       */}
+                      <div className={cx('mt-2 grid flex-1 gap-2', clockSide === 'left' ? 'grid-cols-[3fr_4fr]' : 'grid-cols-[4fr_3fr]')}>
+                        <button
+                          type="button"
+                          onClick={doSkip}
+                          disabled={locked}
+                          className={cx(
+                            'flex min-h-[72px] flex-col items-center justify-center gap-0.5 rounded-2xl border-2 border-orange-400 bg-orange-50 px-1 text-orange-700 transition hover:bg-orange-100 active:scale-[0.97] disabled:opacity-40 sm:min-h-[84px] lg:min-h-[96px]',
+                            clockSide === 'left' ? 'order-1' : 'order-2',
+                          )}
+                        >
+                          <span className="flex items-center gap-1 text-base font-black sm:text-lg">
+                            <PauseCircle size={18} className="shrink-0" /> 보류
+                          </span>
+                          <span className="text-[10px] font-semibold opacity-80 sm:text-xs">{current.questionNo}번 넘어가기</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={doComplete}
+                          disabled={locked}
+                          className={cx(
+                            'flex min-h-[72px] flex-col items-center justify-center gap-0.5 rounded-2xl bg-blue-600 px-1 text-white shadow-lg shadow-blue-600/30 transition hover:bg-blue-700 active:scale-[0.97] disabled:opacity-40 sm:min-h-[84px] lg:min-h-[96px]',
+                            clockSide === 'left' ? 'order-2' : 'order-1',
+                          )}
+                        >
+                          <span className="flex items-center gap-1 text-base font-black sm:text-xl">
+                            <CheckCircle2 size={20} className="shrink-0" /> 풀이 완료
+                          </span>
+                          <span className="text-[10px] font-semibold opacity-90 sm:text-xs">{current.questionNo}번 → 다음 문제</span>
+                        </button>
+                      </div>
                     </>
                   ) : tracker?.finalized ? (
                     <div className="flex flex-1 items-center justify-center text-center text-sm font-bold">시험이 종료되어 기록이 확정되었습니다.</div>
