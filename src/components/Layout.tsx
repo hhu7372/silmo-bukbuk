@@ -1,6 +1,6 @@
 import { ArrowLeft, BarChart3, Crown, Moon, Settings, Sun, Timer, UserRound } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { ADS, SITE } from '../config/site';
+import { ADS, SITE, adReady } from '../config/site';
 import { AdSlot } from './AdSlot';
 import { useApp } from '../context/AppContext';
 import { cx } from './ui';
@@ -113,18 +113,23 @@ export function Layout({
   /** 시험 진행 화면 등 */
   immersive?: boolean;
 }) {
-  const { isPro } = useApp();
+  const { isPro, showDebug } = useApp();
   // 시험 중에는 집중을 위해 광고를 숨김 (태블릿 가로 화면은 넓은 2단 배치)
+  // 광고 단위가 설정된 자리만 표시. 설정 전에는 자리표시자를 개발 화면·테스트 도구에서만 보여줌
+  // (애드센스 심사 때 빈 "광고" 상자가 보이면 미완성 사이트처럼 보일 수 있음)
+  const placeholders = import.meta.env.DEV || showDebug;
   const showAds = !isPro && !immersive;
+  const showSideAds = showAds && (placeholders || adReady(ADS.slots.left) || adReady(ADS.slots.right));
+  const showMobileAd = showAds && (placeholders || adReady(ADS.slots.mobile));
   // 하단 여백: 네비(64px) + 모바일 띠 배너(50px)
-  const bottomPad = cx(immersive ? 'pb-3' : showNav ? 'pb-20' : 'pb-6', showAds && (showNav ? 'max-lg:pb-[136px]' : 'max-lg:pb-[72px]'));
+  const bottomPad = cx(immersive ? 'pb-3' : showNav ? 'pb-20' : 'pb-6', showMobileAd && (showNav ? 'max-lg:pb-[136px]' : 'max-lg:pb-[72px]'));
 
   return (
     <div className={cx('app-root min-h-screen', immersive && isPro ? 'bg-slate-950' : 'bg-slate-100')}>
       {/* 시험 화면은 시계와 풀이 버튼만 보이도록 상단 바를 숨김 */}
       {!immersive && <Header onBack={onBack} />}
       <div className="mx-auto flex w-full max-w-[1440px] justify-center gap-6 lg:px-4">
-        {showAds && (
+        {showSideAds && (
           <aside className="hidden w-[160px] shrink-0 pt-6 lg:block xl:w-[300px]">
             <div className="sticky top-20">
               <AdSlot label="AdSense Left Slot" slot={ADS.slots.left} className="h-[600px] w-full" />
@@ -153,7 +158,7 @@ export function Layout({
             </footer>
           )}
         </main>
-        {showAds && (
+        {showSideAds && (
           <aside className="hidden w-[160px] shrink-0 pt-6 lg:block xl:w-[300px]">
             <div className="sticky top-20">
               <AdSlot label="AdSense Right Slot" slot={ADS.slots.right} className="h-[600px] w-full" />
@@ -161,7 +166,7 @@ export function Layout({
           </aside>
         )}
       </div>
-      {showAds && (
+      {showMobileAd && (
         <div className={cx('fixed inset-x-0 z-20 bg-white px-2 lg:hidden', showNav ? 'bottom-16' : 'bottom-0')}>
           <AdSlot label="AdSense Mobile Bottom Banner (320x50)" slot={ADS.slots.mobile} size={[320, 50]} className="mx-auto h-[50px] max-w-3xl rounded-none border-x-0" />
         </div>

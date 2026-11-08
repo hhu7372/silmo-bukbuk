@@ -25,3 +25,8 @@ export const ADS = {
     exam: (env.VITE_ADSENSE_SLOT_EXAM as string | undefined) ?? '',
   },
 };
+
+/** 광고 단위가 실제로 설정되었는지 */
+export function adReady(slot: string): boolean {
+  return Boolean(ADS.client && slot);
+}

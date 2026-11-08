@@ -2,7 +2,7 @@ import { ArrowDown, ArrowLeft, ArrowLeftRight, Bug, Maximize2, Minimize2, CheckC
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AdSlot } from '../components/AdSlot';
 import { ClockDisplay } from '../components/ClockDisplay';
-import { ADS } from '../config/site';
+import { ADS, adReady } from '../config/site';
 import { confirmAsync } from '../components/ConfirmHost';
 import { QuestionGrid, StatusLegend } from '../components/QuestionGrid';
 import { Segmented, cx } from '../components/ui';
@@ -296,7 +296,7 @@ export function ExamScreen({ settings, onFinish }: { settings: ExamSettings; onF
   const panel = 'border-slate-200 bg-white';
 
   // 태블릿·PC 시험 화면 광고 (휴대폰은 공간이 좁아 표시하지 않음, Pro 는 숨김)
-  const examAd = !isPro ? <AdSlot label="AdSense Exam Slot (가로 배너)" slot={ADS.slots.exam} className="hidden h-[72px] w-full shrink-0 md:flex lg:h-[90px]" /> : null;
+  const examAd = !isPro && (import.meta.env.DEV || showDebug || adReady(ADS.slots.exam)) ? <AdSlot label="AdSense Exam Slot (가로 배너)" slot={ADS.slots.exam} className="hidden h-[72px] w-full shrink-0 md:flex lg:h-[90px]" /> : null;
 
   // 태블릿 이상: 시험 중 페이지가 위아래로 밀리지 않도록 스크롤 잠금
   useEffect(() => {
