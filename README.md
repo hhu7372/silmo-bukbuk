@@ -18,7 +18,7 @@ npm run preview    # 빌드 결과 미리보기
 
 | 호스팅 | 방법 |
 | --- | --- |
-| **Cloudflare Pages (권장)** | 무료·트래픽 무제한·광고 등 상업적 이용 가능. 빌드 명령 `npm run build`, 출력 폴더 `dist`, 환경 변수 `SITE_URL` |
+| **Cloudflare Workers (사용 중)** | 무료·상업적 이용 가능. `wrangler.jsonc` 포함. Build command `npm run build`, Deploy command `npx wrangler deploy`. 배포 주소는 `.env.production` 의 `SITE_URL`(https://silbik.com) |
 | **Netlify** | 저장소 연결 → `netlify.toml` 자동 적용. 환경 변수 `SITE_URL` 설정 |
 | **Vercel** | 저장소 연결 → 자동 인식 (`vercel.json` 포함). 무료(Hobby) 요금제는 비상업용이라 광고를 붙이면 유료 요금제가 필요 |
 | **GitHub Pages** | `.github/workflows/deploy-pages.yml` 포함. Settings → Pages → Source 를 *GitHub Actions* 로, Variables 에 `SITE_URL` |
