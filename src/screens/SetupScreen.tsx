@@ -1,4 +1,4 @@
-import { AlarmClock, ArrowLeft, Bell, Clock3, Crown, Eye, Gauge, Hourglass, ListOrdered, Lock, Play, Watch } from 'lucide-react';
+import { AlarmClock, ArrowLeft, ArrowLeftRight, Bell, Clock3, Crown, Eye, Gauge, Hourglass, ListOrdered, Lock, Play, Watch } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { canUseExp, consumeExp, FREE_EXP_SESSIONS, getExpAccess } from '../lib/expQuota';
 import { useMemo, useState } from 'react';
@@ -17,6 +17,7 @@ interface StoredPrefs {
   clockModel: ClockModel;
   waitOption: WaitOption;
   customWaitMin: number;
+  clockSide: 'left' | 'right';
   visualAlert: boolean;
   soundAlert: boolean;
   expMode: boolean;
@@ -32,6 +33,7 @@ const DEFAULT_PREFS: StoredPrefs = {
   clockModel: 'A',
   waitOption: 'prep',
   customWaitMin: 10,
+  clockSide: 'left',
   visualAlert: true,
   soundAlert: false,
   expMode: true,
@@ -49,7 +51,7 @@ const MODEL_NAMES: Record<ClockModel, string> = {
 function normalizePrefs(p: StoredPrefs): StoredPrefs {
   const clockModel: ClockModel = p.clockModel === 'B' ? 'B' : 'A';
   const waitOption: WaitOption = p.waitOption === 'none' || p.waitOption === 'prep' || p.waitOption === 'custom' ? p.waitOption : 'prep';
-  return { ...p, clockModel, waitOption, customWaitMin: clampWait(p.customWaitMin ?? DEFAULT_PREFS.customWaitMin), questionCounts: p.questionCounts ?? {} };
+  return { ...p, clockModel, waitOption, customWaitMin: clampWait(p.customWaitMin ?? DEFAULT_PREFS.customWaitMin), questionCounts: p.questionCounts ?? {}, clockSide: p.clockSide === 'right' ? 'right' : 'left' };
 }
 
 export function SetupScreen({ examId, subjectId, onBack, onStart }: { examId: string; subjectId: string; onBack: () => void; onStart: (s: ExamSettings) => void }) {
@@ -106,6 +108,7 @@ export function SetupScreen({ examId, subjectId, onBack, onStart }: { examId: st
       visualAlert: prefs.visualAlert,
       soundAlert: prefs.soundAlert,
       expMode: expOn,
+      clockSide: prefs.clockSide,
       questionCount: adjustable ? questionCount : undefined,
     });
   };
@@ -221,6 +224,19 @@ export function SetupScreen({ examId, subjectId, onBack, onStart }: { examId: st
             </button>
           ))}
         </div>
+      </Card>
+
+      <Card>
+        <SectionTitle icon={<ArrowLeftRight size={18} />}>화면 배치 (EXP 모드)</SectionTitle>
+        <ChoiceGroup
+          value={prefs.clockSide}
+          onChange={(v) => update('clockSide', v)}
+          options={[
+            { value: 'left', label: '시계 왼쪽 · 버튼 오른쪽', hint: '오른손으로 버튼을 누를 때 (기본)' },
+            { value: 'right', label: '시계 오른쪽 · 버튼 왼쪽', hint: '왼손으로 버튼을 누를 때' },
+          ]}
+        />
+        <p className="mt-2 text-xs text-slate-500">시험 중에도 위쪽 [좌우 바꾸기] 버튼으로 바꿀 수 있습니다.</p>
       </Card>
 
       <Card>

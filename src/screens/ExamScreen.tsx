@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowLeft, Bug, CheckCircle2, FastForward, Lock, PauseCircle, Square, SkipForward, Sun, Zap } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowLeftRight, Bug, CheckCircle2, FastForward, Lock, PauseCircle, Square, SkipForward, Sun, Zap } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ClockDisplay } from '../components/ClockDisplay';
 import { confirmAsync } from '../components/ConfirmHost';
@@ -26,6 +26,7 @@ import { OUTCOME_LABEL } from '../lib/stats';
 import { minToHM, msToKorean, msToMMSS, uid } from '../lib/time';
 import { resolveTiming, waitMinutes } from '../lib/timing';
 import type { ExamResult, ExamSettings, SpeedMultiplier } from '../types';
+import { loadPref, savePref } from '../repository/resultRepository';
 
 type Phase = 'waiting' | 'running' | 'warning' | 'ended';
 
@@ -58,6 +59,12 @@ export function ExamScreen({ settings, onFinish }: { settings: ExamSettings; onF
 
   // ───────────── 가상 시계 (배속 지원) ─────────────
   const [speed, setSpeed] = useState<SpeedMultiplier>(1);
+  const [clockSide, setClockSide] = useState<'left' | 'right'>(settings.clockSide ?? 'left');
+  const toggleSide = () => {
+    const next = clockSide === 'left' ? 'right' : 'left';
+    setClockSide(next);
+    savePref('setup-prefs', { ...loadPref<Record<string, unknown>>('setup-prefs', {}), clockSide: next });
+  };
   const speedRef = useRef<SpeedMultiplier>(1);
   const virtualRef = useRef(initialMs);
   const lastRealRef = useRef(performance.now());
@@ -329,6 +336,18 @@ export function ExamScreen({ settings, onFinish }: { settings: ExamSettings; onF
             {elective && <span className="rounded-md bg-white/15 px-1.5 py-0.5 text-[11px] font-semibold">{elective.name}</span>}
             <span className={cx('rounded-full px-2.5 py-0.5 text-[11px] font-black', badge.cls)}>{badgeText}</span>
           </div>
+          <div className="flex shrink-0 items-center gap-1.5">
+          {settings.expMode && (
+            <button
+              type="button"
+              onClick={toggleSide}
+              className="flex shrink-0 items-center gap-1 rounded-lg bg-white/10 px-2.5 py-1.5 text-xs font-bold hover:bg-white/20"
+              title="시계와 풀이 버튼의 좌우 위치를 바꿉니다"
+              aria-label="좌우 바꾸기"
+            >
+              <ArrowLeftRight size={12} /> <span className="hidden sm:inline">좌우 바꾸기</span>
+            </button>
+          )}
           <button
             type="button"
             onClick={endNow}
@@ -337,6 +356,7 @@ export function ExamScreen({ settings, onFinish }: { settings: ExamSettings; onF
           >
             <Square size={11} className="fill-white" /> 시험 즉시 종료
           </button>
+          </div>
         </div>
 
         {/* 디버그 / 테스트 컨트롤 (배포본에서는 계정 화면에서 켜야 표시) */}
@@ -409,9 +429,16 @@ export function ExamScreen({ settings, onFinish }: { settings: ExamSettings; onF
       ) : (
         /*
          * 휴대폰·태블릿 세로: [시계 | 컨트롤] 위, 문항 그리드 아래
-         * 태블릿 가로·데스크톱(lg): 왼쪽에 큰 시계 고정, 오른쪽에 컨트롤·그리드·Lap 기록
+         * 태블릿 가로·데스크톱(lg): 한쪽에 큰 시계, 반대쪽 위에 문항 그리드·아래에 컨트롤
+         * 시계 위치(왼쪽/오른쪽)는 설정 또는 상단 [좌우 바꾸기] 로 변경
          */
-        <div className="grid grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-2 [grid-template-areas:'clock_ctrl'_'grid_grid'_'laps_laps'] sm:grid-cols-2 sm:gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-rows-[auto_auto_1fr] lg:gap-4 lg:[grid-template-areas:'clock_ctrl'_'clock_grid'_'clock_laps']">
+        <div
+          className={
+            clockSide === 'left'
+              ? "grid grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-2 [grid-template-areas:'clock_ctrl'_'grid_grid'_'laps_laps'] sm:grid-cols-2 sm:gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-rows-[1fr_auto_auto] lg:gap-4 lg:[grid-template-areas:'clock_grid'_'clock_ctrl'_'laps_laps']"
+              : "grid grid-cols-[minmax(0,7fr)_minmax(0,5fr)] gap-2 [grid-template-areas:'ctrl_clock'_'grid_grid'_'laps_laps'] sm:grid-cols-2 sm:gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-rows-[1fr_auto_auto] lg:gap-4 lg:[grid-template-areas:'grid_clock'_'ctrl_clock'_'laps_laps']"
+          }
+        >
             <div className="flex items-center justify-center rounded-3xl bg-white p-2 shadow-sm [grid-area:clock] sm:p-4 lg:sticky lg:top-[72px] lg:min-h-[calc(100vh-190px)] lg:self-start lg:p-6">{clock}</div>
 
             <div className={cx('flex min-w-0 flex-col rounded-3xl border p-3 shadow-sm [grid-area:ctrl] sm:p-4', panel)}>
@@ -421,81 +448,90 @@ export function ExamScreen({ settings, onFinish }: { settings: ExamSettings; onF
                   <div className="text-xs font-bold sm:text-sm">시험 시작 전에는 풀이 버튼이 잠겨 있습니다</div>
                   <div className="text-[11px] sm:text-xs">{minToHM(timing.startMin)} 정각에 1번 문항 (Lap #1) 측정이 자동 시작됩니다.</div>
                 </div>
-              ) : current ? (
+              ) : (
                 <>
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className={cx('text-[11px] font-semibold sm:text-xs', muted)}>현재 문항 · Lap #{tracker ? nextLapNo(tracker) : 1}</div>
-                      <div className="text-3xl font-black leading-tight tabular-nums sm:text-5xl">{current.questionNo}번</div>
-                      {currentVisits > 0 && (
-                        <span className="inline-block rounded bg-orange-500 px-1.5 py-0.5 text-[10px] font-bold text-white">{currentVisits + 1}회차 재도전</span>
+                  {current && (
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className={cx('text-[11px] font-semibold sm:text-xs', muted)}>현재 문항 · Lap #{tracker ? nextLapNo(tracker) : 1}</div>
+                        <div className="text-3xl font-black leading-tight tabular-nums sm:text-5xl">{current.questionNo}번</div>
+                        {currentVisits > 0 && (
+                          <span className="inline-block rounded bg-orange-500 px-1.5 py-0.5 text-[10px] font-bold text-white">{currentVisits + 1}회차 재도전</span>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <div className={cx('text-[11px] font-semibold sm:text-xs', muted)}>이번 Lap</div>
+                        <div className="font-mono text-xl font-black tabular-nums text-blue-500 sm:text-3xl">{msToMMSS(currentLapMs)}</div>
+                        {currentQuestionPrevMs > 0 && <div className={cx('text-[10px] tabular-nums sm:text-[11px]', muted)}>누적 {msToKorean(currentQuestionPrevMs + currentLapMs)}</div>}
+                      </div>
+                    </div>
+                  )}
+                  {/* 보류 문항 이동 */}
+                  <div className="mt-2 grid grid-cols-2 gap-1.5">
+                    <button
+                      type="button"
+                      onClick={doRecentSkipped}
+                      disabled={locked || recentSkipped === null}
+                      className={cx(
+                        'flex h-9 items-center justify-center gap-1 rounded-xl border text-[11px] font-bold transition disabled:opacity-35 sm:text-xs',
+                        'border-slate-300 text-slate-700 hover:bg-slate-50',
                       )}
-                    </div>
-                    <div className="text-right">
-                      <div className={cx('text-[11px] font-semibold sm:text-xs', muted)}>이번 Lap</div>
-                      <div className="font-mono text-xl font-black tabular-nums text-blue-500 sm:text-3xl">{msToMMSS(currentLapMs)}</div>
-                      {currentQuestionPrevMs > 0 && <div className={cx('text-[10px] tabular-nums sm:text-[11px]', muted)}>누적 {msToKorean(currentQuestionPrevMs + currentLapMs)}</div>}
-                    </div>
+                      title="키보드 ←"
+                    >
+                      <ArrowLeft size={13} /> 최근 보류{recentSkipped !== null && <span className="hidden sm:inline">&nbsp;({recentSkipped}번)</span>}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={doNextSkipped}
+                      disabled={locked || nextSkippedQ === null}
+                      className={cx(
+                        'flex h-9 items-center justify-center gap-1 rounded-xl border text-[11px] font-bold transition disabled:opacity-35 sm:text-xs',
+                        'border-slate-300 text-slate-700 hover:bg-slate-50',
+                      )}
+                      title="키보드 ↓"
+                    >
+                      <ArrowDown size={13} /> 다음 보류{nextSkippedQ !== null && <span className="hidden sm:inline">&nbsp;({nextSkippedQ}번)</span>}
+                    </button>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={doComplete}
-                    disabled={locked}
-                    className="mt-2 flex min-h-[56px] w-full flex-1 items-center justify-center gap-1.5 rounded-2xl bg-blue-600 px-2 text-sm font-black text-white shadow-lg shadow-blue-600/30 transition hover:bg-blue-700 active:scale-[0.98] disabled:opacity-40 sm:mt-3 sm:min-h-[72px] sm:text-lg"
-                  >
-                    <CheckCircle2 size={20} className="shrink-0" />
-                    <span>[현재 {current.questionNo}번] 풀이 완료 → 다음 문제</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={doSkip}
-                    disabled={locked}
-                    className="mt-1.5 flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-2xl border-2 border-orange-400 bg-orange-50 px-2 text-xs font-bold text-orange-700 transition hover:bg-orange-100 active:scale-[0.98] disabled:opacity-40 sm:mt-2 sm:text-sm"
-                  >
-                    <PauseCircle size={16} className="shrink-0" />
-                    <span>
-                      [현재 {current.questionNo}번] 보류<span className="hidden sm:inline"> 후 넘어가기</span> (Skip)
-                    </span>
-                  </button>
-                </>
-              ) : tracker?.finalized ? (
-                <div className="flex flex-1 items-center justify-center text-center text-sm font-bold">시험이 종료되어 기록이 확정되었습니다.</div>
-              ) : (
-                <div className={cx('flex flex-1 flex-col items-center justify-center gap-1.5 rounded-2xl p-3 text-center', 'bg-emerald-50 text-emerald-800')}>
-                  <Sun size={22} />
-                  <div className="text-sm font-black">{completedCount === total ? '모든 문항 풀이 완료!' : '남은 문항이 모두 보류 상태입니다.'}</div>
-                  <div className="text-[11px] sm:text-xs">다시 풀 문항을 그리드에서 선택하거나 ← / ↓ 키로 보류 문항으로 이동하세요.</div>
-                </div>
-              )}
+                  {current ? (
+                    <>
+                      {/* 보류(위) → 풀이 완료(아래, 가장 크게) */}
+                      <button
+                        type="button"
+                        onClick={doSkip}
+                        disabled={locked}
+                        className="mt-2 flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-2xl border-2 border-orange-400 bg-orange-50 px-2 text-xs font-bold text-orange-700 transition hover:bg-orange-100 active:scale-[0.98] disabled:opacity-40 sm:mt-2 sm:text-sm"
+                      >
+                        <PauseCircle size={16} className="shrink-0" />
+                        <span>
+                          [현재 {current.questionNo}번] 보류<span className="hidden sm:inline"> 후 넘어가기</span> (Skip)
+                        </span>
+                      </button>
 
-              {phase !== 'waiting' && (
-                <div className="mt-1.5 grid grid-cols-2 gap-1.5 sm:mt-2">
-                  <button
-                    type="button"
-                    onClick={doRecentSkipped}
-                    disabled={locked || recentSkipped === null}
-                    className={cx(
-                      'flex h-9 items-center justify-center gap-1 rounded-xl border text-[11px] font-bold transition disabled:opacity-35 sm:text-xs',
-                      'border-slate-300 text-slate-700 hover:bg-slate-50',
-                    )}
-                    title="키보드 ←"
-                  >
-                    <ArrowLeft size={13} /> 최근 보류{recentSkipped !== null && <span className="hidden sm:inline">&nbsp;({recentSkipped}번)</span>}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={doNextSkipped}
-                    disabled={locked || nextSkippedQ === null}
-                    className={cx(
-                      'flex h-9 items-center justify-center gap-1 rounded-xl border text-[11px] font-bold transition disabled:opacity-35 sm:text-xs',
-                      'border-slate-300 text-slate-700 hover:bg-slate-50',
-                    )}
-                    title="키보드 ↓"
-                  >
-                    <ArrowDown size={13} /> 다음 보류{nextSkippedQ !== null && <span className="hidden sm:inline">&nbsp;({nextSkippedQ}번)</span>}
-                  </button>
-                </div>
+                      <button
+                        type="button"
+                        onClick={doComplete}
+                        disabled={locked}
+                        className="mt-1.5 flex min-h-[56px] w-full flex-1 items-center justify-center gap-1.5 rounded-2xl bg-blue-600 px-2 text-sm font-black text-white shadow-lg shadow-blue-600/30 transition hover:bg-blue-700 active:scale-[0.98] disabled:opacity-40 sm:mt-2 sm:min-h-[72px] sm:text-lg lg:min-h-[96px] lg:text-xl"
+                      >
+                        <CheckCircle2 size={20} className="shrink-0" />
+                        <span>[현재 {current.questionNo}번] 풀이 완료 → 다음 문제</span>
+                      </button>
+
+                    </>
+                  ) : tracker?.finalized ? (
+                    <div className="flex flex-1 items-center justify-center text-center text-sm font-bold">시험이 종료되어 기록이 확정되었습니다.</div>
+
+                  ) : (
+                    <div className={cx('flex flex-1 flex-col items-center justify-center gap-1.5 rounded-2xl p-3 text-center', 'bg-emerald-50 text-emerald-800')}>
+                      <Sun size={22} />
+                      <div className="text-sm font-black">{completedCount === total ? '모든 문항 풀이 완료!' : '남은 문항이 모두 보류 상태입니다.'}</div>
+                      <div className="text-[11px] sm:text-xs">다시 풀 문항을 그리드에서 선택하거나 ← / ↓ 키로 보류 문항으로 이동하세요.</div>
+                    </div>
+
+                  )}
+                </>
               )}
             </div>
 

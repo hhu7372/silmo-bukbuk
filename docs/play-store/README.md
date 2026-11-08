@@ -72,7 +72,7 @@
 
 **카테고리**: 교육 · **태그**: 공부, 시험, 타이머
 
-**연락처 이메일**: (CONTACT_EMAIL 과 같은 주소) · **개인정보처리방침 URL**: `https://내도메인/privacy.html`
+**연락처 이메일**: silmobukbuk@gmail.com · **개인정보처리방침 URL**: `https://silbuk.com/privacy.html`
 
 ## 앱 콘텐츠 설문 답변 가이드
 
