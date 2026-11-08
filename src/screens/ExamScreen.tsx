@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowLeft, ArrowLeftRight, Bug, CheckCircle2, FastForward, Lock, PauseCircle, Square, SkipForward, Sun, Zap } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowLeftRight, Bug, Maximize2, Minimize2, CheckCircle2, FastForward, Lock, PauseCircle, Square, SkipForward, Sun, Zap } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AdSlot } from '../components/AdSlot';
 import { ClockDisplay } from '../components/ClockDisplay';
@@ -305,7 +305,37 @@ export function ExamScreen({ settings, onFinish }: { settings: ExamSettings; onF
     return () => root.classList.remove('exam-lock');
   }, []);
 
-  const clock = (
+  // 시계를 눌러도 '풀이 완료' (버튼을 조준할 필요 없이). 연속 터치 실수 방지를 위해 0.8초 간격 제한
+  const [tapFlash, setTapFlash] = useState(false);
+  const lastTapRef = useRef(0);
+  const clockTappable = settings.expMode && !locked && !!current;
+  const onClockTap = () => {
+    if (!clockTappable) return;
+    const now = performance.now();
+    if (now - lastTapRef.current < 800) return;
+    lastTapRef.current = now;
+    doComplete();
+    setTapFlash(true);
+    window.setTimeout(() => setTapFlash(false), 180);
+  };
+
+  // 전체 화면 (브라우저 주소창까지 숨김, 지원하는 기기만)
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const fullscreenSupported = typeof document !== 'undefined' && !!document.fullscreenEnabled;
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', onChange);
+      if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
+    };
+  }, []);
+  const toggleFullscreen = () => {
+    if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
+    else void document.documentElement.requestFullscreen().catch(() => undefined);
+  };
+
+  const clockFace = (
     <ClockDisplay
       clockType={settings.clockType}
       timeMode={settings.timeMode}
@@ -319,9 +349,27 @@ export function ExamScreen({ settings, onFinish }: { settings: ExamSettings; onF
       compact={settings.expMode}
     />
   );
+  const clock = settings.expMode ? (
+    <div
+      role="button"
+      tabIndex={-1}
+      aria-label="시계를 눌러 풀이 완료"
+      onClick={onClockTap}
+      className={cx(
+        'flex w-full flex-col items-center rounded-2xl transition md:min-h-0 lg:flex-1',
+        clockTappable && 'cursor-pointer active:scale-[0.99]',
+        tapFlash && 'bg-blue-100',
+      )}
+    >
+      {clockFace}
+      {clockTappable && <div className="mt-1 hidden text-[11px] font-semibold text-blue-500 sm:block">시계를 눌러도 풀이 완료</div>}
+    </div>
+  ) : (
+    clockFace
+  );
 
   return (
-    <div className="relative select-none space-y-3 [-webkit-touch-callout:none] md:flex md:h-[calc(100dvh-105px)] md:flex-col md:gap-3 md:space-y-0">
+    <div className="relative select-none space-y-3 [-webkit-touch-callout:none] md:flex md:h-[calc(100dvh-24px)] md:flex-col md:gap-3 md:space-y-0">
       {/* 종료 N분 전: Vignette Glow 점멸 (약 3초) 후 원래 화면으로 복귀 */}
       {flashing && (
         <div className="pointer-events-none fixed inset-0 z-40 animate-warning-flash" aria-hidden />
@@ -338,7 +386,7 @@ export function ExamScreen({ settings, onFinish }: { settings: ExamSettings; onF
       )}
 
       {/* 상단 바 */}
-      <div className="shrink-0 rounded-2xl bg-slate-900 px-3 py-2.5 text-white shadow-lg sm:px-4">
+      <div className="shrink-0 rounded-2xl bg-slate-900 px-3 py-2 text-white shadow-lg sm:px-4">
         <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
             <h1 className="text-base font-black sm:text-lg">{label}</h1>
@@ -347,6 +395,17 @@ export function ExamScreen({ settings, onFinish }: { settings: ExamSettings; onF
             <span className={cx('rounded-full px-2.5 py-0.5 text-[11px] font-black', badge.cls)}>{badgeText}</span>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
+          {fullscreenSupported && (
+            <button
+              type="button"
+              onClick={toggleFullscreen}
+              aria-label={isFullscreen ? '전체 화면 끝내기' : '전체 화면'}
+              title={isFullscreen ? '전체 화면 끝내기' : '전체 화면'}
+              className="flex shrink-0 items-center gap-1 rounded-lg bg-white/10 px-2.5 py-1.5 text-xs font-bold hover:bg-white/20"
+            >
+              {isFullscreen ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+            </button>
+          )}
           {settings.expMode && (
             <button
               type="button"

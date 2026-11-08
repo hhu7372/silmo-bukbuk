@@ -1,4 +1,4 @@
-import { ArrowLeft, BarChart3, Crown, Settings, Timer, UserRound } from 'lucide-react';
+import { ArrowLeft, BarChart3, Crown, Moon, Settings, Sun, Timer, UserRound } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { ADS, SITE } from '../config/site';
 import { AdSlot } from './AdSlot';
@@ -8,7 +8,7 @@ import { cx } from './ui';
 export type NavTab = 'home' | 'history' | 'account';
 
 function Header({ onBack }: { onBack?: () => void }) {
-  const { isPro, setPro, user } = useApp();
+  const { isPro, setPro, user, isDark, setTheme } = useApp();
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-[1440px] items-center justify-between gap-3 px-4">
@@ -30,6 +30,16 @@ function Header({ onBack }: { onBack?: () => void }) {
             <div className="truncate text-[11px] text-slate-500">모의고사 타이머{!SITE.betaFree && (user ? ` · ${user.name}님` : ' · 비회원')}</div>
           </div>
         </div>
+        <div className="flex shrink-0 items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setTheme(isDark ? 'light' : 'dark')}
+          className="flex h-9 w-9 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100"
+          aria-label={isDark ? '라이트 모드로' : '다크 모드로'}
+          title={isDark ? '라이트 모드로' : '다크 모드로'}
+        >
+          {isDark ? <Sun size={18} /> : <Moon size={18} />}
+        </button>
         {SITE.betaFree ? (
           <span className="shrink-0 rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700" title="베타 기간에는 모든 기능을 무료로 쓸 수 있습니다">
             BETA · 전 기능 무료
@@ -49,6 +59,7 @@ function Header({ onBack }: { onBack?: () => void }) {
           Pro 모드 {isPro ? 'ON' : 'OFF'}
         </button>
         )}
+        </div>
       </div>
     </header>
   );
@@ -106,11 +117,12 @@ export function Layout({
   // 시험 중에는 집중을 위해 광고를 숨김 (태블릿 가로 화면은 넓은 2단 배치)
   const showAds = !isPro && !immersive;
   // 하단 여백: 네비(64px) + 모바일 띠 배너(50px)
-  const bottomPad = cx(showNav ? 'pb-20' : 'pb-6', showAds && (showNav ? 'max-lg:pb-[136px]' : 'max-lg:pb-[72px]'));
+  const bottomPad = cx(immersive ? 'pb-3' : showNav ? 'pb-20' : 'pb-6', showAds && (showNav ? 'max-lg:pb-[136px]' : 'max-lg:pb-[72px]'));
 
   return (
-    <div className={cx('min-h-screen', immersive && isPro ? 'bg-slate-950' : 'bg-slate-100')}>
-      <Header onBack={onBack} />
+    <div className={cx('app-root min-h-screen', immersive && isPro ? 'bg-slate-950' : 'bg-slate-100')}>
+      {/* 시험 화면은 시계와 풀이 버튼만 보이도록 상단 바를 숨김 */}
+      {!immersive && <Header onBack={onBack} />}
       <div className="mx-auto flex w-full max-w-[1440px] justify-center gap-6 lg:px-4">
         {showAds && (
           <aside className="hidden w-[160px] shrink-0 pt-6 lg:block xl:w-[300px]">
@@ -119,7 +131,7 @@ export function Layout({
             </div>
           </aside>
         )}
-        <main className={cx('mx-auto w-full min-w-0 px-4 pt-4 sm:pt-6', immersive ? 'max-w-3xl lg:max-w-6xl' : 'max-w-3xl', bottomPad)}>
+        <main className={cx('mx-auto w-full min-w-0 px-4', immersive ? 'pt-3' : 'pt-4 sm:pt-6', immersive ? 'max-w-3xl lg:max-w-6xl' : 'max-w-3xl', bottomPad)}>
           {children}
           {showNav && (
             <footer className="mt-10 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] text-slate-400">

@@ -7,7 +7,7 @@ import { SITE } from '../config/site';
 import { useApp } from '../context/AppContext';
 
 export function AccountScreen({ onFeedback }: { onFeedback: (kind: 'feedback' | 'inquiry') => void }) {
-  const { user, openLogin, logout, isPro, setPro, repository, openTutorial, showDebug, setShowDebug } = useApp();
+  const { user, openLogin, logout, isPro, setPro, repository, openTutorial, showDebug, setShowDebug, theme, setTheme } = useApp();
   const [count, setCount] = useState<number | null>(null);
   const wakeLockSupported = typeof navigator !== 'undefined' && 'wakeLock' in navigator;
   const audioSupported = typeof window !== 'undefined' && 'AudioContext' in window;
@@ -119,6 +119,30 @@ export function AccountScreen({ onFeedback }: { onFeedback: (kind: 'feedback' | 
           <span className="text-xs text-slate-500">사용 방법, 오류 신고</span>
         </button>
       </div>
+
+      <Card>
+        <SectionTitle>화면 테마</SectionTitle>
+        <div className="grid grid-cols-3 gap-1 rounded-xl bg-slate-200 p-1">
+          {(
+            [
+              ['system', '기기 설정'],
+              ['light', '라이트'],
+              ['dark', '다크'],
+            ] as const
+          ).map(([v, label]) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setTheme(v)}
+              aria-pressed={theme === v}
+              className={`h-10 rounded-lg text-sm font-bold ${theme === v ? 'bg-white text-slate-900 shadow' : 'text-slate-600'}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <p className="mt-2 text-xs text-slate-500">"기기 설정"은 휴대폰·태블릿의 다크 모드 설정을 따라갑니다.</p>
+      </Card>
 
       <Card>
         <SectionTitle>테스트 도구</SectionTitle>

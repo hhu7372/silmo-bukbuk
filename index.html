@@ -7,6 +7,13 @@
     <meta name="description" content="실제 수능 시간표 그대로 흐르는 모의고사 타이머. 문항별 풀이 시간(EXP 모드) 측정, 정답 빠른 입력 채점, 파트별 누적 오답 통계까지." />
     <meta name="keywords" content="모의고사 타이머, 수능 타이머, 실모, 수능 시계, 문항별 시간, 오답 분석, 모의고사 채점" />
     <meta name="theme-color" content="#0f172a" />
+    <script>
+      // 다크 모드 깜빡임 방지: 화면을 그리기 전에 저장된 테마 적용
+      try {
+        var t = JSON.parse(localStorage.getItem('csat-timer:theme') || '"system"');
+        if (t === 'dark' || (t !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches)) document.documentElement.classList.add('dark');
+      } catch (e) {}
+    </script>
     <meta name="application-name" content="실모벅벅" />
     <meta name="apple-mobile-web-app-title" content="실모벅벅" />
     <meta name="apple-mobile-web-app-capable" content="yes" />

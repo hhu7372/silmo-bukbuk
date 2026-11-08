@@ -8,6 +8,8 @@ export const SITE = {
   name: '실모벅벅',
   fullName: '실모벅벅 - 모의고사 타이머',
   betaFree: true,
+  /** 공유 문구·결과 카드에 들어가는 대표 주소 */
+  url: 'https://silbuk.com',
 };
 
 const env = import.meta.env;

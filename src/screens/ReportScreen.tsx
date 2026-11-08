@@ -2,6 +2,9 @@ import { AlertTriangle, BarChart3, CheckCircle2, ClipboardCheck, Home, Info, Rot
 import { useMemo, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { AnswerKeyPanel } from '../components/AnswerKeyPanel';
+import { SectionCompare } from '../components/SectionCompare';
+import { ShareCardPanel } from '../components/ShareCardPanel';
+import { SolveTimeline } from '../components/SolveTimeline';
 import { OmrGrid } from '../components/QuestionGrid';
 import { Card, SectionTitle, Stat, cx } from '../components/ui';
 import { useApp } from '../context/AppContext';
@@ -34,9 +37,13 @@ export function ReportScreen({
 }) {
   const { user, openLogin } = useApp();
   const subject = getSubject(result.examId, result.subjectId);
-  const sections = (subject?.sections ?? [{ id: 'all', name: '전체', q_start: 1, q_end: result.totalQuestions }])
-    .filter((sec) => sec.q_start <= result.totalQuestions)
-    .map((sec) => ({ ...sec, q_end: Math.min(sec.q_end, result.totalQuestions) }));
+  const sections = useMemo(
+    () =>
+      (subject?.sections ?? [{ id: 'all', name: '전체', q_start: 1, q_end: result.totalQuestions }])
+        .filter((sec) => sec.q_start <= result.totalQuestions)
+        .map((sec) => ({ ...sec, q_end: Math.min(sec.q_end, result.totalQuestions) })),
+    [subject, result.totalQuestions],
+  );
 
   const [tab, setTab] = useState<Tab>('score');
   const [scoreText, setScoreText] = useState(result.score === null ? '' : String(result.score));
@@ -99,7 +106,7 @@ export function ReportScreen({
   const tabs: Array<{ id: Tab; label: string; icon: JSX.Element }> = [
     { id: 'score', label: '점수 · 오답 체크', icon: <ClipboardCheck size={16} /> },
     { id: 'exp', label: 'EXP 시간 통계', icon: <Timer size={16} /> },
-    { id: 'save', label: '저장', icon: <Save size={16} /> },
+    { id: 'save', label: '저장 · 공유', icon: <Save size={16} /> },
   ];
 
   const correctCount = result.totalQuestions - wrong.size;
@@ -287,6 +294,9 @@ export function ReportScreen({
               />
             </div>
 
+            <SolveTimeline laps={result.laps} totalMs={result.elapsedMs || result.durationMin * 60_000} wrong={wrong} />
+            <SectionCompare result={result} sections={sections} />
+
             <Card>
               <SectionTitle icon={<Timer size={18} />}>문항별 소요 시간 (초)</SectionTitle>
               <div className="h-72">
@@ -414,6 +424,7 @@ export function ReportScreen({
         ))}
 
       {tab === 'save' && (
+        <>
         <Card>
           <SectionTitle icon={<Save size={18} />}>결과 저장</SectionTitle>
           <textarea
@@ -429,6 +440,21 @@ export function ReportScreen({
             점수 {scoreText || '미입력'} · 오답 {wrong.size}개 · Lap {result.laps.length}개 · 저장 위치: {user ? `${user.name} 계정 (데모: 이 브라우저)` : '이 브라우저 (비회원)'}
           </div>
         </Card>
+        <ShareCardPanel
+          data={{
+            title: mockName.trim() || result.examTitle,
+            subject: [result.subjectName, result.electiveName].filter(Boolean).join(' · '),
+            dateLabel: formatDateTime(result.createdAt).slice(0, 10),
+            score: scoreText.trim() === '' ? null : Number(scoreText),
+            correct: correctCount,
+            total: result.totalQuestions,
+            elapsedLabel: msToMMSS(result.elapsedMs),
+            durationLabel: `${result.durationMin}:00`,
+            sections: breakdown.map((b) => ({ name: b.section.name, time: result.expMode && b.timeMs > 0 ? msToKorean(b.timeMs) : null, wrong: b.wrong, total: b.total })),
+            highlight: result.expMode && summary.attemptedCount ? `문항당 평균 ${msToKorean(summary.meanMs)} · 보류 후 다시 푼 문항 ${summary.regressions.length}개` : undefined,
+          }}
+        />
+        </>
       )}
 
       {error && <div className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</div>}
