@@ -64,8 +64,14 @@ export function ClockDisplay(p: ClockDisplayProps) {
   }
 
   return (
-    <div className="flex w-full flex-col items-center">
-      <div className={cx('aspect-square w-full', p.compact ? 'max-w-[340px] lg:max-w-[min(100%,calc(100vh-280px))]' : 'max-w-[min(78vw,420px)] lg:max-w-[min(100%,calc(100vh-300px),560px)]')}>
+    <div className="flex w-full flex-col items-center md:min-h-0 lg:flex-1">
+      {/* 휴대폰·태블릿 세로: 너비 기준 정사각형 / 태블릿 가로·PC: 남은 높이에 맞춰 축소 */}
+      <div
+        className={cx(
+          'aspect-square w-full md:min-h-0 lg:aspect-auto lg:max-w-none lg:flex-1',
+          p.compact ? 'max-w-[340px] md:max-w-[380px]' : 'max-w-[min(78vw,420px)] md:max-w-[min(100%,520px)]',
+        )}
+      >
         <AnalogClock
           displaySeconds={displaySeconds}
           model={p.model}

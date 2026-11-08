@@ -1,6 +1,8 @@
 import { ArrowDown, ArrowLeft, ArrowLeftRight, Bug, CheckCircle2, FastForward, Lock, PauseCircle, Square, SkipForward, Sun, Zap } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AdSlot } from '../components/AdSlot';
 import { ClockDisplay } from '../components/ClockDisplay';
+import { ADS } from '../config/site';
 import { confirmAsync } from '../components/ConfirmHost';
 import { QuestionGrid, StatusLegend } from '../components/QuestionGrid';
 import { Segmented, cx } from '../components/ui';
@@ -22,7 +24,6 @@ import {
   type Stamp,
   type TrackerState,
 } from '../lib/lapTracker';
-import { OUTCOME_LABEL } from '../lib/stats';
 import { minToHM, msToKorean, msToMMSS, uid } from '../lib/time';
 import { resolveTiming, waitMinutes } from '../lib/timing';
 import type { ExamResult, ExamSettings, SpeedMultiplier } from '../types';
@@ -41,7 +42,7 @@ const PHASE_BADGE: Record<Phase, { text: string; cls: string }> = {
 const FLASH_MS = 3000;
 
 export function ExamScreen({ settings, onFinish }: { settings: ExamSettings; onFinish: (r: ExamResult) => void }) {
-  const { user, showDebug } = useApp();
+  const { user, showDebug, isPro } = useApp();
   const config = getExamConfig(settings.examId);
   const subject = getSubject(settings.examId, settings.subjectId);
   if (!subject) throw new Error(`알 수 없는 과목: ${settings.subjectId}`);
@@ -288,12 +289,21 @@ export function ExamScreen({ settings, onFinish }: { settings: ExamSettings; onF
   const skippedList = tracker ? skippedQuestions(tracker) : [];
   const recentSkipped = tracker ? mostRecentSkipped(tracker) : null;
   const nextSkippedQ = tracker ? nextSkipped(tracker, current?.questionNo ?? 0) : null;
-  const recentLaps = (tracker?.laps ?? []).slice(-5).reverse();
   const badge = PHASE_BADGE[phase];
   const badgeText = phase === 'warning' ? `종료 ${timing.warningMin}분 전` : badge.text;
 
   const muted = 'text-slate-500';
   const panel = 'border-slate-200 bg-white';
+
+  // 태블릿·PC 시험 화면 광고 (휴대폰은 공간이 좁아 표시하지 않음, Pro 는 숨김)
+  const examAd = !isPro ? <AdSlot label="AdSense Exam Slot (가로 배너)" slot={ADS.slots.exam} className="hidden h-[72px] w-full shrink-0 md:flex lg:h-[90px]" /> : null;
+
+  // 태블릿 이상: 시험 중 페이지가 위아래로 밀리지 않도록 스크롤 잠금
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.add('exam-lock');
+    return () => root.classList.remove('exam-lock');
+  }, []);
 
   const clock = (
     <ClockDisplay
@@ -311,7 +321,7 @@ export function ExamScreen({ settings, onFinish }: { settings: ExamSettings; onF
   );
 
   return (
-    <div className="relative select-none space-y-3 [-webkit-touch-callout:none]">
+    <div className="relative select-none space-y-3 [-webkit-touch-callout:none] md:flex md:h-[calc(100dvh-105px)] md:flex-col md:gap-3 md:space-y-0">
       {/* 종료 N분 전: Vignette Glow 점멸 (약 3초) 후 원래 화면으로 복귀 */}
       {flashing && (
         <div className="pointer-events-none fixed inset-0 z-40 animate-warning-flash" aria-hidden />
@@ -328,7 +338,7 @@ export function ExamScreen({ settings, onFinish }: { settings: ExamSettings; onF
       )}
 
       {/* 상단 바 */}
-      <div className="rounded-2xl bg-slate-900 px-3 py-2.5 text-white shadow-lg sm:px-4">
+      <div className="shrink-0 rounded-2xl bg-slate-900 px-3 py-2.5 text-white shadow-lg sm:px-4">
         <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
             <h1 className="text-base font-black sm:text-lg">{label}</h1>
@@ -399,7 +409,7 @@ export function ExamScreen({ settings, onFinish }: { settings: ExamSettings; onF
 
       {/* 대기 배지 */}
       {phase === 'waiting' && (
-        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-2xl border-2 border-amber-400 bg-amber-50 px-3 py-2 text-amber-900">
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-2xl border-2 border-amber-400 bg-amber-50 px-3 py-2 text-amber-900">
           <div className="flex items-center gap-2 text-sm font-black">
             <Lock size={15} /> [시험 시작 대기 중 - 문제지 표지 확인]
           </div>
@@ -421,8 +431,11 @@ export function ExamScreen({ settings, onFinish }: { settings: ExamSettings; onF
 
       {!settings.expMode ? (
         <>
-          <div className={cx('rounded-3xl p-4 shadow-sm sm:p-6', 'bg-white')}>{clock}</div>
-          <div className={cx('rounded-2xl border p-4 text-center text-sm', panel, muted)}>
+          <div className="flex flex-col items-center justify-center gap-3 rounded-3xl bg-white p-4 shadow-sm sm:p-6 md:min-h-0 md:flex-1">
+            {examAd}
+            {clock}
+          </div>
+          <div className={cx('shrink-0 rounded-2xl border p-4 text-center text-sm', panel, muted)}>
             EXP 모드 OFF — 시계만 표시됩니다. 시험 종료 후 점수와 오답 문항을 기록할 수 있습니다.
           </div>
         </>
@@ -435,11 +448,15 @@ export function ExamScreen({ settings, onFinish }: { settings: ExamSettings; onF
         <div
           className={
             clockSide === 'left'
-              ? "grid grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-2 [grid-template-areas:'clock_ctrl'_'grid_grid'_'laps_laps'] sm:grid-cols-2 sm:gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-rows-[1fr_auto_auto] lg:gap-4 lg:[grid-template-areas:'clock_grid'_'clock_ctrl'_'laps_laps']"
-              : "grid grid-cols-[minmax(0,7fr)_minmax(0,5fr)] gap-2 [grid-template-areas:'ctrl_clock'_'grid_grid'_'laps_laps'] sm:grid-cols-2 sm:gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-rows-[1fr_auto_auto] lg:gap-4 lg:[grid-template-areas:'grid_clock'_'ctrl_clock'_'laps_laps']"
+              ? "grid grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-2 [grid-template-areas:'clock_ctrl'_'grid_grid'] sm:grid-cols-2 sm:gap-3 md:min-h-0 md:flex-1 md:grid-rows-[auto_minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)_auto] lg:gap-4 lg:[grid-template-areas:'clock_grid'_'clock_ctrl']"
+              : "grid grid-cols-[minmax(0,7fr)_minmax(0,5fr)] gap-2 [grid-template-areas:'ctrl_clock'_'grid_grid'] sm:grid-cols-2 sm:gap-3 md:min-h-0 md:flex-1 md:grid-rows-[auto_minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)_auto] lg:gap-4 lg:[grid-template-areas:'grid_clock'_'ctrl_clock']"
           }
         >
-            <div className="flex items-center justify-center rounded-3xl bg-white p-2 shadow-sm [grid-area:clock] sm:p-4 lg:sticky lg:top-[72px] lg:min-h-[calc(100vh-190px)] lg:self-start lg:p-6">{clock}</div>
+            <div className="flex flex-col items-center justify-center gap-2 rounded-3xl bg-white p-2 shadow-sm [grid-area:clock] sm:p-4 lg:min-h-0 lg:gap-3 lg:p-5">
+              {/* 광고: 시계 위쪽 = 풀이 완료 버튼(아래·반대편)과 가장 먼 자리 */}
+              {examAd}
+              {clock}
+            </div>
 
             <div className={cx('flex min-w-0 flex-col rounded-3xl border p-3 shadow-sm [grid-area:ctrl] sm:p-4', panel)}>
               {phase === 'waiting' ? (
@@ -454,7 +471,7 @@ export function ExamScreen({ settings, onFinish }: { settings: ExamSettings; onF
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <div className={cx('text-[11px] font-semibold sm:text-xs', muted)}>현재 문항 · Lap #{tracker ? nextLapNo(tracker) : 1}</div>
-                        <div className="text-3xl font-black leading-tight tabular-nums sm:text-5xl">{current.questionNo}번</div>
+                        <div className="text-3xl font-black leading-tight tabular-nums sm:text-4xl">{current.questionNo}번</div>
                         {currentVisits > 0 && (
                           <span className="inline-block rounded bg-orange-500 px-1.5 py-0.5 text-[10px] font-bold text-white">{currentVisits + 1}회차 재도전</span>
                         )}
@@ -513,7 +530,7 @@ export function ExamScreen({ settings, onFinish }: { settings: ExamSettings; onF
                         type="button"
                         onClick={doComplete}
                         disabled={locked}
-                        className="mt-1.5 flex min-h-[56px] w-full flex-1 items-center justify-center gap-1.5 rounded-2xl bg-blue-600 px-2 text-sm font-black text-white shadow-lg shadow-blue-600/30 transition hover:bg-blue-700 active:scale-[0.98] disabled:opacity-40 sm:mt-2 sm:min-h-[72px] sm:text-lg lg:min-h-[96px] lg:text-xl"
+                        className="mt-1.5 flex min-h-[56px] w-full flex-1 items-center justify-center gap-1.5 rounded-2xl bg-blue-600 px-2 text-sm font-black text-white shadow-lg shadow-blue-600/30 transition hover:bg-blue-700 active:scale-[0.98] disabled:opacity-40 sm:mt-2 sm:min-h-[64px] sm:text-lg lg:min-h-[72px]"
                       >
                         <CheckCircle2 size={20} className="shrink-0" />
                         <span>[현재 {current.questionNo}번] 풀이 완료 → 다음 문제</span>
@@ -536,7 +553,7 @@ export function ExamScreen({ settings, onFinish }: { settings: ExamSettings; onF
             </div>
 
           {/* 문항 미니 그리드 – 시계와 한 화면 */}
-          <div className={cx('rounded-3xl border p-3 shadow-sm [grid-area:grid] sm:p-4', panel)}>
+          <div className={cx('rounded-3xl border p-3 shadow-sm [grid-area:grid] sm:p-4 md:min-h-0 md:overflow-y-auto md:overscroll-contain', panel)}>
             <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
               <StatusLegend />
               <div className={cx('text-xs font-semibold tabular-nums', muted)}>
@@ -560,31 +577,6 @@ export function ExamScreen({ settings, onFinish }: { settings: ExamSettings; onF
             </div>
           </div>
 
-          {recentLaps.length > 0 && (
-            <div className={cx('rounded-3xl border p-3 shadow-sm [grid-area:laps] sm:p-4', panel)}>
-              <div className={cx('mb-1 text-xs font-bold', muted)}>최근 Lap 기록</div>
-              <ul className="space-y-1 text-xs">
-                {recentLaps.map((l) => (
-                  <li key={l.lapNo} className={cx('flex items-center justify-between rounded-lg px-3 py-1.5 tabular-nums', 'bg-slate-50')}>
-                    <span className="font-semibold">
-                      Lap #{l.lapNo} · {l.questionNo}번
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <span
-                        className={cx(
-                          'rounded px-1.5 py-0.5 text-[10px] font-bold',
-                          l.outcome === 'completed' ? 'bg-emerald-500 text-white' : l.outcome === 'exam_end' ? 'bg-slate-500 text-white' : 'bg-orange-500 text-white',
-                        )}
-                      >
-                        {OUTCOME_LABEL[l.outcome]}
-                      </span>
-                      {msToKorean(l.durationMs)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
         </div>
       )}
     </div>

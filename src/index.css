@@ -14,3 +14,12 @@ body {
 button {
   touch-action: manipulation;
 }
+
+/* 태블릿 이상에서 시험 중 페이지 스크롤·당겨서 새로고침 잠금 */
+@media (min-width: 768px) {
+  html.exam-lock,
+  html.exam-lock body {
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+}

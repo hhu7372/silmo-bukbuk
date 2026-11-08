@@ -19,5 +19,7 @@ export const ADS = {
     left: (env.VITE_ADSENSE_SLOT_LEFT as string | undefined) ?? '',
     right: (env.VITE_ADSENSE_SLOT_RIGHT as string | undefined) ?? '',
     mobile: (env.VITE_ADSENSE_SLOT_MOBILE as string | undefined) ?? '',
+    /** 시험 화면(태블릿·PC) 시계 위쪽, 풀이 버튼 반대편 */
+    exam: (env.VITE_ADSENSE_SLOT_EXAM as string | undefined) ?? '',
   },
 };
