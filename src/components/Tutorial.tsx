@@ -89,7 +89,7 @@ const STEPS: Step[] = [
     icon: <ClipboardCheck size={26} />,
     tint: 'bg-violet-600 text-white',
     title: '정답과 내 답을 넣으면 자동 채점',
-    body: '시험이 끝나면 모의고사 이름을 적고, 정답과 내 답을 "12345 51512" 처럼 빠르게 입력하세요. 수학 단답형은 칸이 따로 있습니다. 해설지 사진으로 정답을 읽어오는 기능도 있습니다.',
+    body: '시험이 끝나면 모의고사 이름을 적고, 정답과 내 답을 "12345 51512" 처럼 빠르게 입력하세요. 수학 단답형은 칸이 따로 있습니다.',
     visual: (
       <div className="space-y-1.5 font-mono text-xs">
         <div className="rounded-lg bg-white px-3 py-2 shadow-sm">

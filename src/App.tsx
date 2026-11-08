@@ -148,7 +148,20 @@ function Shell() {
   let content: JSX.Element;
   switch (route.name) {
     case 'home':
-      content = <HomeScreen examId={examId} onExamChange={changeExam} onSelect={(subjectId) => go({ name: 'setup', subjectId })} />;
+      content = (
+        <HomeScreen
+          examId={examId}
+          onExamChange={changeExam}
+          onSelect={(subjectId) => go({ name: 'setup', subjectId })}
+          onOpenHistory={() => go({ name: 'history' })}
+          onOpenResult={(result) => {
+            if (result.examId !== examId) changeExam(result.examId);
+            go({ name: 'report', result, saved: true });
+          }}
+          onFeedback={(kind) => go({ name: 'feedback', kind })}
+          onSettings={() => go({ name: 'account' })}
+        />
+      );
       break;
     case 'setup':
       content = (
@@ -190,7 +203,7 @@ function Shell() {
   }
 
   return (
-    <Layout tab={tab} onTab={onTab} onFeedback={(kind) => go({ name: 'feedback', kind })} onBack={stack.length > 0 ? back : undefined} showNav={route.name !== 'exam'} immersive={route.name === 'exam'}>
+    <Layout wide={route.name === 'home'} tab={tab} onTab={onTab} onFeedback={(kind) => go({ name: 'feedback', kind })} onBack={stack.length > 0 ? back : undefined} showNav={route.name !== 'exam'} immersive={route.name === 'exam'}>
       <Suspense fallback={<div className="py-16 text-center text-sm text-slate-500">불러오는 중…</div>}>{content}</Suspense>
       <LoginModal />
       <ConfirmHost />

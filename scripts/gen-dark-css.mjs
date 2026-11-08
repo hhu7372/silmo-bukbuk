@@ -79,7 +79,7 @@ for (const m of src.matchAll(re)) {
 
 const base = `/* 자동 생성 파일 – 직접 고치지 말고 scripts/gen-dark-css.mjs 를 수정하세요 */
 html.dark { color-scheme: dark; }
-html.dark body, html.dark .app-root { background-color: ${colors.slate[950]}; color: ${colors.slate[100]}; }
+html.dark body, html.dark div.app-root.app-root { background-color: ${colors.slate[950]}; color: ${colors.slate[100]}; }
 :where(html.dark) *, :where(html.dark) ::before, :where(html.dark) ::after { border-color: ${colors.slate[700]}; }
 html.dark input:not([type='checkbox']):not([type='radio']), html.dark textarea, html.dark select { background-color: ${colors.slate[800]}; color: ${colors.slate[100]}; }
 html.dark input::placeholder, html.dark textarea::placeholder { color: ${colors.slate[500]}; }

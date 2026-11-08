@@ -254,6 +254,10 @@
             "prep": "csat2019_eng_prep_1305.mp3",
             "warning": "csat2019_eng_warning_1410.mp3",
             "end": "csat2019_eng_end_1420.mp3"
+          },
+          "listening": {
+            "q_start": 1,
+            "q_end": 17
           }
         },
         {
@@ -494,7 +498,11 @@
               "q_start": 176,
               "q_end": 200
             }
-          ]
+          ],
+          "listening": {
+            "q_start": 1,
+            "q_end": 100
+          }
         },
         {
           "id": "toeic_rc",

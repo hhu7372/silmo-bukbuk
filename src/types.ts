@@ -20,6 +20,8 @@ export interface ExamSettings {
   visualAlert: boolean;
   soundAlert: boolean;
   expMode: boolean;
+  /** 듣기 음원을 본령에 맞춰 재생할지 (파일은 기기에 저장) */
+  listening?: boolean;
   /** EXP 화면에서 시계를 왼쪽/오른쪽 어디에 둘지 (왼손 사용자용) */
   clockSide?: 'left' | 'right';
   /** 회차마다 문항 수가 다른 시험에서 사용자가 지정한 문항 수 */

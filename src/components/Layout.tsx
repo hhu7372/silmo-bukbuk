@@ -10,7 +10,7 @@ export type NavTab = 'home' | 'history' | 'account';
 function Header({ onBack }: { onBack?: () => void }) {
   const { isPro, setPro, user, isDark, setTheme } = useApp();
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-slate-100 bg-white/90 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-[1440px] items-center justify-between gap-3 px-4">
         <div className="flex min-w-0 items-center gap-2">
           {onBack && (
@@ -101,6 +101,7 @@ export function Layout({
   onTab,
   onBack,
   onFeedback,
+  wide,
   showNav,
   immersive,
 }: {
@@ -109,6 +110,8 @@ export function Layout({
   onTab: (t: NavTab) => void;
   onBack?: () => void;
   onFeedback?: (kind: 'feedback' | 'inquiry') => void;
+  /** 홈처럼 2단 배치가 필요한 화면: 옆 광고가 없으면 넓게 */
+  wide?: boolean;
   showNav: boolean;
   /** 시험 진행 화면 등 */
   immersive?: boolean;
@@ -136,7 +139,7 @@ export function Layout({
             </div>
           </aside>
         )}
-        <main className={cx('mx-auto w-full min-w-0 px-4', immersive ? 'pt-3' : 'pt-4 sm:pt-6', immersive ? 'max-w-3xl lg:max-w-6xl' : 'max-w-3xl', bottomPad)}>
+        <main className={cx('mx-auto w-full min-w-0 px-4', immersive ? 'pt-3' : 'pt-4 sm:pt-6', immersive ? 'max-w-3xl lg:max-w-6xl' : wide && !showSideAds ? 'max-w-3xl lg:max-w-5xl' : 'max-w-3xl', bottomPad)}>
           {children}
           {showNav && (
             <footer className="mt-10 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] text-slate-400">

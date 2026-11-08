@@ -103,6 +103,11 @@ export function validateExamData(data: unknown, knownSoundFiles?: string[]): str
           err(SW, 'electives 는 [{ "id": ..., "name": ... }] 형식이어야 합니다.');
       }
       checkSounds(SW, s.sounds);
+      if (s.listening !== undefined) {
+        const l = s.listening;
+        if (!isObj(l) || typeof l.q_start !== 'number' || typeof l.q_end !== 'number' || l.q_start < 1 || l.q_end < l.q_start || (typeof total === 'number' && l.q_end > total))
+          err(SW, 'listening 은 { "q_start": 1, "q_end": 17 } 처럼 문항 범위여야 합니다.');
+      }
       if (s.sub_modes !== undefined) {
         if (!Array.isArray(s.sub_modes) || !s.sub_modes.length) err(SW, 'sub_modes 는 비어 있지 않은 배열이어야 합니다.');
         else

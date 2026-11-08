@@ -128,8 +128,22 @@ export function Segmented<T extends string | number>({
   );
 }
 
+/** 테두리 없는 흰 둥근 카드 (밝은 회색 배경 위) */
 export function Card({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cx('rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5', className)}>{children}</div>;
+  return <div className={cx('rounded-[20px] bg-white p-4 shadow-[0_1px_3px_rgba(15,23,42,0.06)] sm:p-5', className)}>{children}</div>;
+}
+
+/** 화면 안 큰 구역 제목: 색 아이콘 + 굵은 글씨 */
+export function HomeHeading({ icon, children, right }: { icon?: ReactNode; children: ReactNode; right?: ReactNode }) {
+  return (
+    <div className="mb-3 flex flex-wrap items-end justify-between gap-x-2 gap-y-0.5 px-1">
+      <h2 className="flex items-center gap-2 whitespace-nowrap text-lg font-black tracking-tight text-slate-900">
+        {icon}
+        {children}
+      </h2>
+      {right}
+    </div>
+  );
 }
 
 export function SectionTitle({ icon, children, right }: { icon?: ReactNode; children: ReactNode; right?: ReactNode }) {

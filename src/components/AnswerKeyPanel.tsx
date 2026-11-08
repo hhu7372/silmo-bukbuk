@@ -1,8 +1,7 @@
-import { Camera, CheckCheck, ChevronDown, FileImage, Keyboard, Loader2, ScanLine, Square } from 'lucide-react';
+import { CheckCheck, ChevronDown, FileImage, Keyboard, ScanLine } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { getSample, sampleErrorMessage, type SampleFn } from '../lib/claudeRuntime';
-import { fillByKind, grade, mergeRecognized, normalizeAnswer, parseChoiceDigits, parseShortList, type RecognizedSheet } from '../lib/grading';
+import { useState } from 'react';
+import { fillByKind, grade, normalizeAnswer, parseChoiceDigits, parseShortList } from '../lib/grading';
 import type { AnswerKeyItem } from '../types';
 import { Card, SectionTitle, cx } from './ui';
 
@@ -20,59 +19,14 @@ interface Props {
   onGraded: (wrong: number[], score: number | null) => void;
 }
 
-type ScanState = { kind: 'idle' } | { kind: 'running' } | { kind: 'done'; filled: number } | { kind: 'error'; message: string };
-
 const CHOICES = ['1', '2', '3', '4', '5'];
 const CIRCLE = ['①', '②', '③', '④', '⑤'];
 
-function buildPrompt(total: number, subjectName: string, electiveName?: string): string {
-  return [
-    '첨부한 사진은 한국 모의고사/수능 "정답 및 해설"의 첫 페이지입니다. 이 사진에서 시험 이름과 빠른 정답표의 정답만 뽑아주세요. 배점이나 해설은 필요 없습니다.',
-    `과목: ${subjectName}${electiveName ? ` (선택과목: ${electiveName})` : ''}, 문항 수: ${total}`,
-    '',
-    '다음 형식의 JSON 하나만 출력하세요:',
-    '{"examName": string|null, "form": "홀수형"|"짝수형"|null, "answers": [{"q": number, "answer": string}]}',
-    '',
-    '규칙:',
-    '- examName: 사진에 인쇄된 시험 이름 그대로 (예: "2025학년도 대학수학능력시험 9월 모의평가", "2024년 10월 고3 전국연합학력평가"). 과목명은 빼고, 보이지 않으면 null.',
-    '- answers: 사진의 빠른 정답표에 실제로 보이는 문항만 넣으세요. 보이지 않거나 흐린 문항은 넣지 말고, 절대 추측하지 마세요.',
-    '- answer: 5지선다는 "1"~"5" (①→"1"), 단답형은 적힌 숫자 그대로.',
-    `- 선택과목별 정답표가 여러 개면 ${electiveName ? `"${electiveName}"` : '해당 과목'} 표를 쓰세요. 공통 문항도 포함합니다.`,
-    `- 문항 번호는 1~${total} 범위만.`,
-  ].join('\n');
-}
-
 export function AnswerKeyPanel(p: Props) {
-  const [sample, setSample] = useState<SampleFn | null | undefined>(undefined);
-  const [imagesOk, setImagesOk] = useState(false);
-  const [maxImages, setMaxImages] = useState(1);
-  const [files, setFiles] = useState<File[]>([]);
-  const [scan, setScan] = useState<ScanState>({ kind: 'idle' });
   const [keyOpen, setKeyOpen] = useState(false);
-  const [photoOpen, setPhotoOpen] = useState(false);
   const [defaultPoints, setDefaultPoints] = useState('');
-  const ctlRef = useRef<AbortController | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    let alive = true;
-    void getSample().then(async (s) => {
-      if (!alive) return;
-      setSample(s);
-      if (!s) return;
-      const lim = await s.limits().catch(() => null);
-      if (!alive) return;
-      setImagesOk(!!lim?.images);
-      setMaxImages(lim?.images?.maxCount ?? 1);
-    });
-    return () => {
-      alive = false;
-      ctlRef.current?.abort();
-    };
-  }, []);
 
-  const previews = useMemo(() => files.map((f) => URL.createObjectURL(f)), [files]);
-  useEffect(() => () => previews.forEach((u) => URL.revokeObjectURL(u)), [previews]);
 
   const choiceQs = p.answerKey.map((k, i) => (k.kind === 'choice' ? i + 1 : 0)).filter(Boolean);
   const shortQs = p.answerKey.map((k, i) => (k.kind === 'short' ? i + 1 : 0)).filter(Boolean);
@@ -80,30 +34,6 @@ export function AnswerKeyPanel(p: Props) {
   const mineCount = p.myAnswers.filter((a) => normalizeAnswer(a)).length;
   const result = grade(p.answerKey, p.myAnswers);
 
-  const recognize = async () => {
-    if (!sample || files.length === 0) return;
-    const ctl = new AbortController();
-    ctlRef.current = ctl;
-    setScan({ kind: 'running' });
-    try {
-      const rec = await sample.json<RecognizedSheet>(buildPrompt(p.total, p.subjectName, p.electiveName), {
-        images: files.slice(0, maxImages),
-        modelTier: 'default',
-        signal: ctl.signal,
-      });
-      const [next, filled] = mergeRecognized(p.answerKey, rec ?? {});
-      if (rec?.examName && typeof rec.examName === 'string') {
-        p.onMockName([rec.examName.trim(), rec.form && typeof rec.form === 'string' ? `(${rec.form})` : ''].filter(Boolean).join(' '));
-      }
-      p.onAnswerKey(next);
-      setKeyOpen(true);
-      setScan(filled > 0 || rec?.examName ? { kind: 'done', filled } : { kind: 'error', message: '정답표를 찾지 못했습니다. 빠른 정답표가 잘 보이게 다시 찍어주세요.' });
-    } catch (e) {
-      setScan({ kind: 'error', message: sampleErrorMessage(e) });
-    } finally {
-      ctlRef.current = null;
-    }
-  };
 
   const setKeyItem = (i: number, patch: Partial<AnswerKeyItem>) => {
     const next = p.answerKey.slice();
@@ -166,83 +96,6 @@ export function AnswerKeyPanel(p: Props) {
           shortQs={shortQs}
           onApply={applyMine}
         />
-      </div>
-
-      {/* 선택: 사진으로 인식 */}
-      <div className="mt-3 rounded-xl border border-dashed border-slate-300 bg-slate-50">
-        <button type="button" onClick={() => setPhotoOpen((v) => !v)} className="flex w-full items-center justify-between px-3 py-2.5 text-sm font-bold text-slate-700">
-          <span className="flex items-center gap-1.5">
-            <Camera size={16} /> 해설지 사진으로 이름·정답 인식 <span className="text-xs font-medium text-slate-500">(선택)</span>
-          </span>
-          <ChevronDown size={18} className={cx('transition', photoOpen && 'rotate-180')} />
-        </button>
-        {photoOpen && (
-          <div className="border-t border-dashed border-slate-300 px-3 pb-3 pt-1">
-        {sample === undefined ? (
-          <p className="mt-1 text-xs text-slate-500">사진 인식 기능을 확인하는 중…</p>
-        ) : !sample || !imagesOk ? (
-          <p className="mt-1 text-xs text-slate-500">
-            사진 인식은 claude.ai에서 이 앱을 열었을 때만 사용할 수 있습니다. 위의 빠른 입력을 이용해주세요.
-          </p>
-        ) : (
-          <>
-            <p className="mt-1 text-xs text-slate-500">
-              시험 이름과 빠른 정답표가 보이도록 찍은 사진을 올리면 Claude가 모의고사 이름과 정답만 뽑아 채웁니다. 인식 결과는 꼭 한 번 확인해주세요. (처음 한 번 Claude 사용 허용을 묻습니다)
-            </p>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif"
-              capture="environment"
-              multiple={maxImages > 1}
-              className="hidden"
-              onChange={(e) => {
-                setFiles(Array.from(e.target.files ?? []).slice(0, maxImages));
-                setScan({ kind: 'idle' });
-                e.target.value = '';
-              }}
-            />
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => fileRef.current?.click()}
-                className="flex h-10 items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 text-sm font-bold text-slate-700 hover:bg-slate-100"
-              >
-                <Camera size={16} /> 사진 찍기 / 선택
-              </button>
-              {files.length > 0 && scan.kind !== 'running' && (
-                <button type="button" onClick={() => void recognize()} className="flex h-10 items-center gap-1.5 rounded-xl bg-slate-900 px-3 text-sm font-bold text-white">
-                  <ScanLine size={16} /> 인식하기
-                </button>
-              )}
-              {scan.kind === 'running' && (
-                <>
-                  <span className="flex items-center gap-1.5 text-sm font-semibold text-slate-600">
-                    <Loader2 size={16} className="animate-spin" /> 정답표를 읽는 중… (10~60초)
-                  </span>
-                  <button type="button" onClick={() => ctlRef.current?.abort()} className="flex items-center gap-1 rounded-lg border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-600">
-                    <Square size={10} /> 중지
-                  </button>
-                </>
-              )}
-            </div>
-            {previews.length > 0 && (
-              <div className="mt-2 flex gap-2">
-                {previews.map((u, i) => (
-                  <img key={u} src={u} alt={`선택한 사진 ${i + 1}`} className="h-20 w-auto max-w-full rounded-lg border border-slate-200 object-cover" />
-                ))}
-              </div>
-            )}
-            {scan.kind === 'done' && (
-              <p className="mt-2 text-xs font-semibold text-emerald-700">
-                {scan.filled}/{p.total}문항 정답을 채웠습니다. 아래 정답표에서 틀린 곳이 없는지 확인해주세요.
-              </p>
-            )}
-            {scan.kind === 'error' && <p className="mt-2 text-xs font-semibold text-red-600">{scan.message}</p>}
-          </>
-        )}
-          </div>
-        )}
       </div>
 
       {/* 정답표 편집 */}

@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowLeft, ArrowLeftRight, Bug, Maximize2, Minimize2, CheckCircle2, FastForward, Lock, PauseCircle, Square, SkipForward, Sun, Zap } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowLeftRight, Bug, Headphones, Maximize2, Minimize2, Pause, Play, CheckCircle2, FastForward, Lock, PauseCircle, Square, SkipForward, Sun, Zap } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AdSlot } from '../components/AdSlot';
 import { ClockDisplay } from '../components/ClockDisplay';
@@ -10,6 +10,7 @@ import { useApp } from '../context/AppContext';
 import { getExamConfig, getSubject, subjectLabel } from '../data/examConfigData';
 import { useWakeLock } from '../hooks/useWakeLock';
 import { examAudio, type ExamAudioEvent } from '../lib/audio';
+import { listeningPlayer } from '../lib/listening';
 import {
   completeCurrent,
   createTracker,
@@ -193,6 +194,19 @@ export function ExamScreen({ settings, onFinish }: { settings: ExamSettings; onF
     if (last) examAudio.announce(last.ev, label, timing.warningMin);
   }, [virtualMs, settings.soundAlert, audioEvents, label, timing.warningMin]);
 
+  // ───────────── 듣기 음원 (본령에 맞춰 재생) ─────────────
+  const [listen, setListen] = useState({ playing: false, currentSec: 0, durationSec: 0, active: false });
+  const listeningOn = !!settings.listening && listeningPlayer.hasTrack();
+  const listenStartedRef = useRef(false);
+  useEffect(() => listeningPlayer.subscribe(setListen), []);
+  useEffect(() => {
+    if (!listeningOn || listenStartedRef.current || virtualMs < 0 || virtualMs >= durationMs) return;
+    listenStartedRef.current = true;
+    // 본령 타종이 울리면 끝난 뒤에 시작
+    listeningPlayer.start(settings.soundAlert ? 3500 : 300);
+  }, [listeningOn, virtualMs, durationMs, settings.soundAlert]);
+  useEffect(() => () => listeningPlayer.stop(), []);
+
   // ───────────── 종료 처리 ─────────────
   const finish = useCallback(
     (early: boolean) => {
@@ -223,6 +237,7 @@ export function ExamScreen({ settings, onFinish }: { settings: ExamSettings; onF
         wrongQuestions: [],
         ownerId: user?.id ?? null,
       };
+      listeningPlayer.stop();
       if (early) {
         examAudio.stop();
         onFinish(result);
@@ -395,6 +410,32 @@ export function ExamScreen({ settings, onFinish }: { settings: ExamSettings; onF
             <span className={cx('rounded-full px-2.5 py-0.5 text-[11px] font-black', badge.cls)}>{badgeText}</span>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
+          {listeningOn && (
+            <button
+              type="button"
+              onClick={() => listeningPlayer.toggle()}
+              disabled={!listen.active && !listen.playing}
+              aria-label={listen.playing ? '듣기 일시정지' : '듣기 재생'}
+              title={listen.playing ? '듣기 일시정지' : listen.active ? '듣기 재생' : '본령에 맞춰 듣기가 시작됩니다'}
+              className={cx(
+                'flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-bold tabular-nums',
+                listen.playing ? 'bg-sky-500 text-white' : 'bg-white/10 hover:bg-white/20 disabled:opacity-60',
+              )}
+            >
+              <Headphones size={12} />
+              {listen.active || listen.playing ? (
+                <>
+                  {listen.playing ? <Pause size={11} /> : <Play size={11} />}
+                  <span className="hidden sm:inline">
+                    {msToMMSS(listen.currentSec * 1000)}
+                    {listen.durationSec ? ` / ${msToMMSS(listen.durationSec * 1000)}` : ''}
+                  </span>
+                </>
+              ) : (
+                <span className="hidden sm:inline">듣기 대기</span>
+              )}
+            </button>
+          )}
           {fullscreenSupported && (
             <button
               type="button"

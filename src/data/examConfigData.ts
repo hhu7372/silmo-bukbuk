@@ -78,6 +78,8 @@ export interface ExamSubject {
   accent?: 'blue' | 'violet' | 'emerald' | 'amber' | 'sky' | 'rose' | 'slate';
   /** 시점별 내장 음원 (없는 시점은 기본 벨소리 + 짧은 안내) */
   sounds?: SoundMap;
+  /** 듣기 문항 범위가 있으면 설정 화면에서 듣기 음원을 올려 본령에 맞춰 재생할 수 있음 */
+  listening?: { q_start: number; q_end: number };
 }
 
 export type ExamCategoryId = 'csat' | 'cert' | 'civil';

@@ -9,6 +9,8 @@ import { examAudio } from '../lib/audio';
 import { minToHM } from '../lib/time';
 import { clampWait, MAX_CUSTOM_WAIT_MIN, resolveTiming, WAIT_OPTION_LABELS, WAIT_OPTIONS, waitMinutes } from '../lib/timing';
 import { loadPref, savePref } from '../repository/resultRepository';
+import { ListeningSetup } from '../components/ListeningSetup';
+import { listeningPlayer, type StoredListening } from '../lib/listening';
 import type { ClockModel, ClockType, ExamSettings, TimeMode, WaitOption } from '../types';
 
 interface StoredPrefs {
@@ -18,6 +20,8 @@ interface StoredPrefs {
   waitOption: WaitOption;
   customWaitMin: number;
   clockSide: 'left' | 'right';
+  /** 과목별 듣기 음원 사용 여부 */
+  listeningOn: Record<string, boolean>;
   visualAlert: boolean;
   soundAlert: boolean;
   expMode: boolean;
@@ -34,6 +38,7 @@ const DEFAULT_PREFS: StoredPrefs = {
   waitOption: 'prep',
   customWaitMin: 10,
   clockSide: 'left',
+  listeningOn: {},
   visualAlert: true,
   soundAlert: false,
   expMode: true,
@@ -51,7 +56,7 @@ const MODEL_NAMES: Record<ClockModel, string> = {
 function normalizePrefs(p: StoredPrefs): StoredPrefs {
   const clockModel: ClockModel = p.clockModel === 'B' ? 'B' : 'A';
   const waitOption: WaitOption = p.waitOption === 'none' || p.waitOption === 'prep' || p.waitOption === 'custom' ? p.waitOption : 'prep';
-  return { ...p, clockModel, waitOption, customWaitMin: clampWait(p.customWaitMin ?? DEFAULT_PREFS.customWaitMin), questionCounts: p.questionCounts ?? {}, clockSide: p.clockSide === 'right' ? 'right' : 'left' };
+  return { ...p, clockModel, waitOption, customWaitMin: clampWait(p.customWaitMin ?? DEFAULT_PREFS.customWaitMin), questionCounts: p.questionCounts ?? {}, clockSide: p.clockSide === 'right' ? 'right' : 'left', listeningOn: p.listeningOn ?? {} };
 }
 
 export function SetupScreen({ examId, subjectId, onBack, onStart }: { examId: string; subjectId: string; onBack: () => void; onStart: (s: ExamSettings) => void }) {
@@ -59,6 +64,7 @@ export function SetupScreen({ examId, subjectId, onBack, onStart }: { examId: st
   const subject = getSubject(examId, subjectId);
   const [prefs, setPrefs] = useState<StoredPrefs>(() => normalizePrefs(loadPref('setup-prefs', DEFAULT_PREFS)));
   const [starting, setStarting] = useState(false);
+  const [listeningTrack, setListeningTrack] = useState<StoredListening | null>(null);
   const { user, isPro, setPro, openLogin } = useApp();
   const expAccess = getExpAccess(user?.id ?? null, isPro);
   const expAllowed = canUseExp(expAccess);
@@ -86,8 +92,13 @@ export function SetupScreen({ examId, subjectId, onBack, onStart }: { examId: st
   const questionCount = adjustable ? Math.min(300, Math.max(1, Math.round(prefs.questionCounts[subject.id] ?? subject.total_questions))) : subject.total_questions;
   const label = subjectLabel(subject);
 
+  const listeningEnabled = !!subject?.listening && !!listeningTrack && (prefs.listeningOn[subjectId] ?? true);
+
   const start = async () => {
     if (starting) return;
+    // 듣기 음원: 버튼을 누른 이 순간(사용자 동작 안)에 재생 준비 → 본령 때 자동 재생 가능
+    if (listeningEnabled && listeningTrack) listeningPlayer.prime(listeningTrack.blob, listeningTrack.startSec);
+    else listeningPlayer.stop();
     setStarting(true);
     savePref('setup-prefs', prefs);
     if (expOn && expAccess.kind === 'member' && user) consumeExp(user.id);
@@ -109,6 +120,7 @@ export function SetupScreen({ examId, subjectId, onBack, onStart }: { examId: st
       soundAlert: prefs.soundAlert,
       expMode: expOn,
       clockSide: prefs.clockSide,
+      listening: listeningEnabled,
       questionCount: adjustable ? questionCount : undefined,
     });
   };
@@ -238,6 +250,16 @@ export function SetupScreen({ examId, subjectId, onBack, onStart }: { examId: st
         />
         <p className="mt-2 text-xs text-slate-500">시험 중에도 위쪽 [좌우 바꾸기] 버튼으로 바꿀 수 있습니다.</p>
       </Card>
+
+      {subject.listening && (
+        <ListeningSetup
+          subjectId={subject.id}
+          rangeLabel={`${subject.listening.q_start}~${subject.listening.q_end}번`}
+          enabled={prefs.listeningOn[subject.id] ?? true}
+          onEnabled={(v) => update('listeningOn', { ...prefs.listeningOn, [subject.id]: v })}
+          onTrack={setListeningTrack}
+        />
+      )}
 
       <Card>
         <SectionTitle icon={<Hourglass size={18} />}>시험 시작 전 대기시간</SectionTitle>
