@@ -147,6 +147,9 @@ export function Layout({
               <a href="./privacy.html" className="underline-offset-2 hover:text-slate-600 hover:underline">
                 개인정보 처리방침
               </a>
+              <a href="./terms.html" className="underline-offset-2 hover:text-slate-600 hover:underline">
+                이용약관
+              </a>
               {onFeedback && (
                 <>
                   <button type="button" onClick={() => onFeedback('feedback')} className="underline-offset-2 hover:text-slate-600 hover:underline">

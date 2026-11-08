@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { HomeHeading } from '../components/ui';
+import { SeoGuideSection } from '../components/SeoGuideSection';
 import { cx } from '../components/ui';
 import { useApp } from '../context/AppContext';
 import { EXAM_CATEGORIES, examsInCategory, getExamConfig, subjectLabel, type ExamSubject } from '../data/examConfigData';
@@ -103,6 +104,7 @@ export function HomeScreen({
   const exams = examsInCategory(config.category);
 
   return (
+    <div>
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
       {/* ───────── 왼쪽: 시험 선택 + 과목 ───────── */}
       <div className="min-w-0 space-y-6">
@@ -290,6 +292,8 @@ export function HomeScreen({
           <Sparkles size={13} className="mt-0.5 shrink-0 text-amber-500" /> 국가고시 등 다른 시험도 계속 추가될 예정입니다.
         </p>
       </aside>
+    </div>
+    <SeoGuideSection />
     </div>
   );
 }
