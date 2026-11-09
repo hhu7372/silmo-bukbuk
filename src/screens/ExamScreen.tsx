@@ -11,6 +11,7 @@ import { getExamConfig, getSubject, subjectLabel } from '../data/examConfigData'
 import { useWakeLock } from '../hooks/useWakeLock';
 import { examAudio, type ExamAudioEvent } from '../lib/audio';
 import { listeningPlayer } from '../lib/listening';
+import { orderLabel } from '../lib/questionOrder';
 import {
   completeCurrent,
   createTracker,
@@ -130,9 +131,9 @@ export function ExamScreen({ settings, onFinish }: { settings: ExamSettings; onF
   // 본 시험 시작(00:00) 순간 1번 문항 Lap #1 자동 시작
   useEffect(() => {
     if (settings.expMode && !tracker && virtualMs >= 0) {
-      setTracker(createTracker(total, { exam: 0, real: performance.now() }));
+      setTracker(createTracker(total, { exam: 0, real: performance.now() }, 1, settings.questionOrder));
     }
-  }, [settings.expMode, tracker, virtualMs, total]);
+  }, [settings.expMode, tracker, virtualMs, total, settings.questionOrder]);
 
   const canAct = () => virtualRef.current >= 0 && !endedRef.current;
 
@@ -670,6 +671,11 @@ export function ExamScreen({ settings, onFinish }: { settings: ExamSettings; onF
               <div className={cx('text-xs font-semibold tabular-nums', muted)}>
                 완료 {completedCount}/{total} · 보류 {skippedList.length}
               </div>
+              {settings.questionOrder && (
+                <div className="w-full text-[11px] font-semibold text-blue-600">
+                  풀이 순서: <span className="tabular-nums">{orderLabel(settings.questionOrder)}</span>
+                </div>
+              )}
             </div>
             <QuestionGrid total={total} statusOf={(q) => (tracker ? getStatus(tracker, q) : 'untried')} onSelect={doJump} disabled={locked} />
             <div className={cx('mt-2 hidden flex-wrap gap-x-3 gap-y-1 text-[11px] sm:flex [@media(hover:none)]:hidden', muted)}>

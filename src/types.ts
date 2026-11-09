@@ -24,6 +24,8 @@ export interface ExamSettings {
   listening?: boolean;
   /** EXP 화면에서 시계를 왼쪽/오른쪽 어디에 둘지 (왼손 사용자용) */
   clockSide?: 'left' | 'right';
+  /** EXP 풀이 순서 (문항 번호 배열). 없으면 번호순 */
+  questionOrder?: number[];
   /** 회차마다 문항 수가 다른 시험에서 사용자가 지정한 문항 수 */
   questionCount?: number;
 }

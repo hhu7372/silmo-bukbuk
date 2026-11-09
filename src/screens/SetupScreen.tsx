@@ -10,6 +10,8 @@ import { minToHM } from '../lib/time';
 import { clampWait, MAX_CUSTOM_WAIT_MIN, resolveTiming, WAIT_OPTION_LABELS, WAIT_OPTIONS, waitMinutes } from '../lib/timing';
 import { loadPref, savePref } from '../repository/resultRepository';
 import { ListeningSetup } from '../components/ListeningSetup';
+import { QuestionOrderPicker } from '../components/QuestionOrderPicker';
+import { completeOrder, isDefaultOrder, parseRanges, sectionsOrder, type OrderMode } from '../lib/questionOrder';
 import { listeningPlayer, type StoredListening } from '../lib/listening';
 import type { ClockModel, ClockType, ExamSettings, TimeMode, WaitOption } from '../types';
 
@@ -22,6 +24,8 @@ interface StoredPrefs {
   clockSide: 'left' | 'right';
   /** 과목별 듣기 음원 사용 여부 */
   listeningOn: Record<string, boolean>;
+  /** 과목별 풀이 순서 설정 */
+  orders: Record<string, { mode: OrderMode; sectionIds: string[]; customText: string }>;
   visualAlert: boolean;
   soundAlert: boolean;
   expMode: boolean;
@@ -39,6 +43,7 @@ const DEFAULT_PREFS: StoredPrefs = {
   customWaitMin: 10,
   clockSide: 'left',
   listeningOn: {},
+  orders: {},
   visualAlert: true,
   soundAlert: false,
   expMode: true,
@@ -56,7 +61,7 @@ const MODEL_NAMES: Record<ClockModel, string> = {
 function normalizePrefs(p: StoredPrefs): StoredPrefs {
   const clockModel: ClockModel = p.clockModel === 'B' ? 'B' : 'A';
   const waitOption: WaitOption = p.waitOption === 'none' || p.waitOption === 'prep' || p.waitOption === 'custom' ? p.waitOption : 'prep';
-  return { ...p, clockModel, waitOption, customWaitMin: clampWait(p.customWaitMin ?? DEFAULT_PREFS.customWaitMin), questionCounts: p.questionCounts ?? {}, clockSide: p.clockSide === 'right' ? 'right' : 'left', listeningOn: p.listeningOn ?? {} };
+  return { ...p, clockModel, waitOption, customWaitMin: clampWait(p.customWaitMin ?? DEFAULT_PREFS.customWaitMin), questionCounts: p.questionCounts ?? {}, clockSide: p.clockSide === 'right' ? 'right' : 'left', listeningOn: p.listeningOn ?? {}, orders: p.orders ?? {} };
 }
 
 export function SetupScreen({ examId, subjectId, onBack, onStart }: { examId: string; subjectId: string; onBack: () => void; onStart: (s: ExamSettings) => void }) {
@@ -92,6 +97,16 @@ export function SetupScreen({ examId, subjectId, onBack, onStart }: { examId: st
   const questionCount = adjustable ? Math.min(300, Math.max(1, Math.round(prefs.questionCounts[subject.id] ?? subject.total_questions))) : subject.total_questions;
   const label = subjectLabel(subject);
 
+  const orderPref = prefs.orders[subject.id] ?? { mode: 'number' as OrderMode, sectionIds: [], customText: '' };
+  const clippedSections = subject.sections.filter((s) => s.q_start <= questionCount);
+  const questionOrder = (() => {
+    if (orderPref.mode === 'sections') return sectionsOrder(clippedSections, orderPref.sectionIds, questionCount);
+    if (orderPref.mode === 'custom') {
+      const r = parseRanges(orderPref.customText, questionCount);
+      return r.error || !r.list.length ? undefined : completeOrder(r.list, questionCount);
+    }
+    return undefined;
+  })();
   const listeningEnabled = !!subject?.listening && !!listeningTrack && (prefs.listeningOn[subjectId] ?? true);
 
   const start = async () => {
@@ -120,6 +135,7 @@ export function SetupScreen({ examId, subjectId, onBack, onStart }: { examId: st
       soundAlert: prefs.soundAlert,
       expMode: expOn,
       clockSide: prefs.clockSide,
+      questionOrder: expOn && questionOrder && !isDefaultOrder(questionOrder) ? questionOrder : undefined,
       listening: listeningEnabled,
       questionCount: adjustable ? questionCount : undefined,
     });
@@ -358,6 +374,16 @@ export function SetupScreen({ examId, subjectId, onBack, onStart }: { examId: st
           label={expOn ? 'ON' : 'OFF'}
           description="문항마다 '풀이 완료 / 보류' 버튼을 눌러 Lap을 기록합니다. 건너뛰었다 돌아오는 풀이까지 구간별로 정확히 저장됩니다."
         />
+        {expOn && (
+          <QuestionOrderPicker
+            sections={clippedSections}
+            total={questionCount}
+            mode={orderPref.mode}
+            sectionIds={orderPref.sectionIds}
+            customText={orderPref.customText}
+            onChange={(patch) => update('orders', { ...prefs.orders, [subject.id]: { ...orderPref, ...patch } })}
+          />
+        )}
         <div
           className={cx(
             'mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl px-3 py-2 text-xs',

@@ -41,6 +41,8 @@ export interface TrackerState {
   /** 한 번이라도 Lap이 기록된 문항 */
   visited: boolean[];
   finalized: boolean;
+  /** 풀이 순서 (문항 번호 배열). 없으면 1번부터 번호순 */
+  order?: number[];
 }
 
 export interface Stamp {
@@ -55,15 +57,29 @@ export const AUTO_LAP_GRACE_MS = 3000;
 /** 사용자가 직접 고른 문항도 이 시간(실제 ms) 안에 떠나면 '훑어보기'로 보고 Lap을 남기지 않음 (방향키 연속 이동 등) */
 export const BROWSE_GRACE_MS = 1000;
 
-export function createTracker(total: number, at: Stamp, firstQuestion = 1): TrackerState {
+/**
+ * order 를 주면 그 순서의 첫 문항부터 시작하고, 완료·보류 뒤에도 그 순서를 따라 다음 문항으로 이동
+ * (예: 국어 화작 먼저 → [35..45, 18..34, 1..17])
+ */
+export function createTracker(total: number, at: Stamp, firstQuestion = 1, order?: number[]): TrackerState {
+  const validOrder = order && order.length === total ? order : undefined;
   return {
     total,
     laps: [],
-    current: { questionNo: firstQuestion, startMs: at.exam, realStart: at.real, userInitiated: true },
+    current: { questionNo: validOrder ? validOrder[0] : firstQuestion, startMs: at.exam, realStart: at.real, userInitiated: true },
     completed: Array(total).fill(false),
     visited: Array(total).fill(false),
     finalized: false,
+    order: validOrder,
   };
+}
+
+/** 풀이 순서상의 위치 → 문항 번호 목록 (fromQ 다음부터 한 바퀴) */
+function cycleFrom(state: Pick<TrackerState, 'total' | 'order'>, fromQ: number): number[] {
+  const seq = state.order ?? Array.from({ length: state.total }, (_, i) => i + 1);
+  const idx = seq.indexOf(fromQ);
+  const start = idx < 0 ? 0 : idx + 1;
+  return [...seq.slice(start), ...seq.slice(0, start)].filter((q) => q !== fromQ);
 }
 
 export function nextLapNo(state: TrackerState): number {
@@ -78,12 +94,8 @@ export function getStatus(state: TrackerState, q: number): QuestionStatus {
 }
 
 /** fromQ 다음부터 순환하며 미완료 문항 탐색 (fromQ 자신 제외) */
-export function findNextOpen(state: Pick<TrackerState, 'total' | 'completed'>, fromQ: number): number | null {
-  for (let step = 1; step < state.total; step++) {
-    const q = ((fromQ - 1 + step) % state.total) + 1;
-    if (!state.completed[q - 1]) return q;
-  }
-  return null;
+export function findNextOpen(state: Pick<TrackerState, 'total' | 'completed' | 'order'>, fromQ: number): number | null {
+  return cycleFrom(state, fromQ).find((q) => !state.completed[q - 1]) ?? null;
 }
 
 function closeCurrent(state: TrackerState, at: Stamp, outcome: LapOutcome): TrackerState {
@@ -167,7 +179,8 @@ export function mostRecentSkipped(state: TrackerState): number | null {
 
 /** 보류중 문항 중 fromQ 다음 번호 (순환) */
 export function nextSkipped(state: TrackerState, fromQ: number): number | null {
-  const skipped = skippedQuestions(state);
-  if (skipped.length === 0) return null;
-  return skipped.find((q) => q > fromQ) ?? skipped[0];
+  const skipped = new Set(skippedQuestions(state));
+  if (skipped.size === 0) return null;
+  // 풀이 순서를 따라 다음 보류 문항 (현재 문항이 보류 문항이 아니어도 순서상 다음 것)
+  return cycleFrom(state, fromQ).find((q) => skipped.has(q)) ?? null;
 }
