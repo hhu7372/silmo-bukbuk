@@ -170,6 +170,7 @@ function Shell() {
           subjectId={route.subjectId}
           onBack={() => go({ name: 'home' })}
           onStart={(settings) => go({ name: 'exam', settings, runId: Date.now() })}
+          onOpenAccount={() => go({ name: 'account' })}
         />
       );
       break;

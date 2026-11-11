@@ -73,10 +73,11 @@ export class LocalStorageResultRepository implements ExamResultRepository {
   }
 }
 
-/** 로그인 상태에 따라 저장소 선택. 현재는 모의 로그인이므로 로컬 저장소를 공용 사용. */
-export function createResultRepository(_userId: string | null): ExamResultRepository {
-  void _userId;
-  return new LocalStorageResultRepository();
+/** 비회원: 이 기기 기록 중 주인 없는 것(비회원 때 저장)과 예시 데이터만 */
+export class GuestResultRepository extends LocalStorageResultRepository {
+  async list(): Promise<ExamResult[]> {
+    return (await super.list()).filter((r) => r.sample || !r.ownerId);
+  }
 }
 
 /** 간단한 key-value 설정 저장 */

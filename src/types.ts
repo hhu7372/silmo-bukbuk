@@ -77,5 +77,14 @@ export interface AppUser {
   id: string;
   name: string;
   email: string;
-  provider: 'email' | 'google' | 'kakao';
+  provider: string;
+  avatarUrl?: string;
+}
+
+/** 서버에서 받은 이용 권한 */
+export interface Entitlement {
+  isPro: boolean;
+  proUntil: string | null;
+  expUsed: number;
+  expLimit: number;
 }

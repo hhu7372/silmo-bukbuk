@@ -5,7 +5,6 @@ import { confirmAsync } from '../components/ConfirmHost';
 import { Card, SectionTitle, Stat, cx } from '../components/ui';
 import { useApp } from '../context/AppContext';
 import { getExamConfig, getSubject, subjectLabel } from '../data/examConfigData';
-import { SITE } from '../config/site';
 import { GroupEditor } from '../components/GroupEditor';
 import { DEFAULT_VIEW, groupOf, sortResults, UNGROUPED, type HistoryView } from '../lib/recordGroups';
 import { loadPref, savePref } from '../repository/resultRepository';
@@ -15,7 +14,7 @@ import { formatDateTime, msToKorean } from '../lib/time';
 import type { ExamResult } from '../types';
 
 export function HistoryScreen({ examId, onOpen }: { examId: string; onOpen: (r: ExamResult) => void }) {
-  const { repository, user, openLogin } = useApp();
+  const { repository, user, openLogin, authEnabled } = useApp();
   const [results, setResults] = useState<ExamResult[] | null>(null);
   const config = getExamConfig(examId);
   const [subjectId, setSubjectId] = useState<string>(config.subjects[0]?.id ?? '');
@@ -143,7 +142,7 @@ export function HistoryScreen({ examId, onOpen }: { examId: string; onOpen: (r: 
         <p className="text-xs text-slate-500">{config.exam_title}</p>
       </div>
 
-      {!user && !SITE.betaFree && (
+      {!user && authEnabled && (
         <div className="flex items-center justify-between gap-2 rounded-xl bg-slate-200/70 px-3 py-2 text-xs text-slate-700">
           <span>비회원 기록은 이 브라우저에만 저장됩니다.</span>
           <button type="button" onClick={openLogin} className="shrink-0 font-bold text-blue-700">

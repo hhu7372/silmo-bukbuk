@@ -1,6 +1,6 @@
 import { AlarmClock, ArrowLeft, ArrowLeftRight, Bell, Clock3, Crown, Eye, Gauge, Hourglass, ListOrdered, Lock, Play, Watch } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { canUseExp, consumeExp, FREE_EXP_SESSIONS, getExpAccess } from '../lib/expQuota';
+import { canUseExp, getExpAccess } from '../lib/expQuota';
 import { useMemo, useState } from 'react';
 import { AnalogClock } from '../components/AnalogClock';
 import { Card, ChoiceGroup, SectionTitle, Toggle, cx } from '../components/ui';
@@ -64,14 +64,15 @@ function normalizePrefs(p: StoredPrefs): StoredPrefs {
   return { ...p, clockModel, waitOption, customWaitMin: clampWait(p.customWaitMin ?? DEFAULT_PREFS.customWaitMin), questionCounts: p.questionCounts ?? {}, clockSide: p.clockSide === 'right' ? 'right' : 'left', listeningOn: p.listeningOn ?? {}, orders: p.orders ?? {} };
 }
 
-export function SetupScreen({ examId, subjectId, onBack, onStart }: { examId: string; subjectId: string; onBack: () => void; onStart: (s: ExamSettings) => void }) {
+export function SetupScreen({ examId, subjectId, onBack, onStart, onOpenAccount }: { examId: string; subjectId: string; onBack: () => void; onStart: (s: ExamSettings) => void; onOpenAccount: () => void }) {
   const config = getExamConfig(examId);
   const subject = getSubject(examId, subjectId);
   const [prefs, setPrefs] = useState<StoredPrefs>(() => normalizePrefs(loadPref('setup-prefs', DEFAULT_PREFS)));
   const [starting, setStarting] = useState(false);
   const [listeningTrack, setListeningTrack] = useState<StoredListening | null>(null);
-  const { user, isPro, setPro, openLogin } = useApp();
-  const expAccess = getExpAccess(user?.id ?? null, isPro);
+  const { user, entitlement, openLogin, consumeExp } = useApp();
+  const expAccess = getExpAccess(user, entitlement);
+  const [expError, setExpError] = useState('');
   const expAllowed = canUseExp(expAccess);
   const expOn = prefs.expMode && expAllowed;
 
@@ -114,13 +115,20 @@ export function SetupScreen({ examId, subjectId, onBack, onStart }: { examId: st
     // 듣기 음원: 버튼을 누른 이 순간(사용자 동작 안)에 재생 준비 → 본령 때 자동 재생 가능
     if (listeningEnabled && listeningTrack) listeningPlayer.prime(listeningTrack.blob, listeningTrack.startSec);
     else listeningPlayer.stop();
+    if (prefs.soundAlert) examAudio.unlock(); // 사용자 제스처 안에서 오디오 잠금 해제 (서버 확인보다 먼저)
     setStarting(true);
+    setExpError('');
     savePref('setup-prefs', prefs);
-    if (expOn && expAccess.kind === 'member' && user) consumeExp(user.id);
-    if (prefs.soundAlert) {
-      examAudio.unlock(); // 사용자 제스처 안에서 오디오 잠금 해제
-      await examAudio.prepareCustom(subject.id, subModeId); // 내장 음원 미리 디코딩
+    // 회원 무료 횟수는 서버에서 차감 (Pro·베타는 차감 없음)
+    if (expOn && expAccess.kind === 'member') {
+      const ok = await consumeExp();
+      if (!ok) {
+        setStarting(false);
+        setExpError('EXP 모드를 시작하지 못했어요. 무료 횟수를 모두 썼거나 인터넷 연결이 끊겼을 수 있어요. EXP 모드를 끄고 시작하거나 잠시 후 다시 시도해주세요.');
+        return;
+      }
     }
+    if (prefs.soundAlert) await examAudio.prepareCustom(subject.id, subModeId); // 내장 음원 미리 디코딩
     onStart({
       examId: config.exam_id,
       subjectId: subject.id,
@@ -393,34 +401,34 @@ export function SetupScreen({ examId, subjectId, onBack, onStart }: { examId: st
           {expAccess.kind === 'beta' && <span className="font-semibold">🎉 베타 기간 무료 · EXP 모드를 횟수 제한 없이 쓸 수 있습니다.</span>}
           {expAccess.kind === 'pro' && (
             <span className="flex items-center gap-1 font-semibold">
-              <Crown size={14} className="fill-amber-400 text-amber-500" /> Pro 구독 중 · EXP 모드 무제한
+              <Crown size={14} className="fill-amber-400 text-amber-500" /> Pro 이용 중 · EXP 모드 무제한
             </span>
           )}
           {expAccess.kind === 'member' && (
             <>
               <span className="font-semibold">
-                회원 무료 이용 · 남은 횟수 <b className="tabular-nums">{expAccess.remaining}</b>/{FREE_EXP_SESSIONS}회
+                회원 무료 이용 · 남은 횟수 <b className="tabular-nums">{expAccess.remaining}</b>/{expAccess.limit}회
                 {expOn && <span className="font-normal text-blue-700"> (시작하면 1회 차감)</span>}
               </span>
-              <button type="button" onClick={() => setPro(true)} className="font-bold text-amber-700 underline-offset-2 hover:underline">
-                Pro 구독하면 무제한
+              <button type="button" onClick={onOpenAccount} className="font-bold text-amber-700 underline-offset-2 hover:underline">
+                Pro는 무제한
               </button>
             </>
           )}
           {expAccess.kind === 'exhausted' && (
             <>
               <span className="flex items-center gap-1 font-semibold">
-                <Lock size={13} /> 무료 {FREE_EXP_SESSIONS}회를 모두 사용했습니다.
+                <Lock size={13} /> 무료 {expAccess.limit}회를 모두 사용했습니다.
               </span>
-              <button type="button" onClick={() => setPro(true)} className="rounded-lg bg-amber-500 px-2.5 py-1 font-bold text-white">
-                Pro 구독하고 무제한 이용
+              <button type="button" onClick={onOpenAccount} className="rounded-lg bg-amber-500 px-2.5 py-1 font-bold text-white">
+                Pro 이용권 알아보기
               </button>
             </>
           )}
           {expAccess.kind === 'guest' && (
             <>
               <span className="flex items-center gap-1 font-semibold">
-                <Lock size={13} /> 회원가입하면 EXP 모드를 {FREE_EXP_SESSIONS}회 무료로 쓸 수 있습니다.
+                <Lock size={13} /> 로그인하면 EXP 모드를 무료로 10회 쓸 수 있습니다.
               </span>
               <button type="button" onClick={openLogin} className="rounded-lg bg-slate-900 px-2.5 py-1 font-bold text-white">
                 회원가입 / 로그인
@@ -453,6 +461,7 @@ export function SetupScreen({ examId, subjectId, onBack, onStart }: { examId: st
         </div>
       </Card>
 
+      {expError && <p className="mb-2 rounded-xl bg-red-50 p-3 text-xs font-semibold text-red-700">{expError}</p>}
       <button
         type="button"
         onClick={() => void start()}

@@ -9,7 +9,6 @@ import { OmrGrid } from '../components/QuestionGrid';
 import { Card, SectionTitle, Stat, cx } from '../components/ui';
 import { useApp } from '../context/AppContext';
 import { getSubject } from '../data/examConfigData';
-import { SITE } from '../config/site';
 import { ensureKey } from '../lib/grading';
 import { buildQuestionLogs, findSection, sectionBreakdown, summarize } from '../lib/stats';
 import { formatDateTime, msToKorean, msToMMSS } from '../lib/time';
@@ -35,7 +34,7 @@ export function ReportScreen({
   onHome: () => void;
   onRetry: () => void;
 }) {
-  const { user, openLogin } = useApp();
+  const { user, openLogin, authEnabled } = useApp();
   const subject = getSubject(result.examId, result.subjectId);
   const sections = useMemo(
     () =>
@@ -120,7 +119,7 @@ export function ReportScreen({
 
   return (
     <div className="space-y-4">
-      {saved && !user && !SITE.betaFree && (
+      {saved && !user && authEnabled && (
         <div className="flex flex-col gap-2 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-2">
             <Info size={18} className="mt-0.5 shrink-0" />

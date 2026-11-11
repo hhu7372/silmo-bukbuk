@@ -1,4 +1,4 @@
-import { ArrowLeft, BarChart3, Crown, Moon, Settings, Sun, Timer, UserRound } from 'lucide-react';
+import { ArrowLeft, BarChart3, Moon, Sun, Timer, UserRound } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { ADS, SITE, adReady } from '../config/site';
 import { AdSlot } from './AdSlot';
@@ -7,8 +7,8 @@ import { cx } from './ui';
 
 export type NavTab = 'home' | 'history' | 'account';
 
-function Header({ onBack }: { onBack?: () => void }) {
-  const { isPro, setPro, user, isDark, setTheme } = useApp();
+function Header({ onBack, onAccount }: { onBack?: () => void; onAccount?: () => void }) {
+  const { isPro, user, isDark, setTheme, authEnabled, openLogin } = useApp();
   return (
     <header className="sticky top-0 z-30 border-b border-slate-100 bg-white/90 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-[1440px] items-center justify-between gap-3 px-4">
@@ -27,7 +27,7 @@ function Header({ onBack }: { onBack?: () => void }) {
           <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" className="h-8 w-8 shrink-0" width={32} height={32} />
           <div className="min-w-0 leading-tight">
             <div className="truncate text-base font-black tracking-tight text-slate-900">실모벅벅</div>
-            <div className="truncate text-[11px] text-slate-500">모의고사 타이머{!SITE.betaFree && (user ? ` · ${user.name}님` : ' · 비회원')}</div>
+            <div className="truncate text-[11px] text-slate-500">모의고사 타이머{user ? ` · ${user.name}님` : ''}</div>
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -41,24 +41,22 @@ function Header({ onBack }: { onBack?: () => void }) {
           {isDark ? <Sun size={18} /> : <Moon size={18} />}
         </button>
         {SITE.betaFree ? (
-          <span className="shrink-0 rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700" title="베타 기간에는 모든 기능을 무료로 쓸 수 있습니다">
+          <span className="hidden shrink-0 rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 sm:inline" title="베타 기간에는 모든 기능을 무료로 쓸 수 있습니다">
             BETA · 전 기능 무료
           </span>
-        ) : (
-        <button
-          type="button"
-          onClick={() => setPro(!isPro)}
-          className={cx(
-            'flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold transition',
-            isPro ? 'border-amber-400 bg-amber-50 text-amber-700' : 'border-slate-300 bg-white text-slate-600',
-          )}
-          aria-pressed={isPro}
-          title="Pro 구독 시뮬레이션: 광고 제거 + EXP 모드 무제한"
-        >
-          <Crown size={14} className={isPro ? 'fill-amber-400 text-amber-500' : ''} />
-          Pro 모드 {isPro ? 'ON' : 'OFF'}
-        </button>
-        )}
+        ) : isPro ? (
+          <span className="shrink-0 rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-black text-amber-700">PRO</span>
+        ) : null}
+        {authEnabled &&
+          (user ? (
+            <button type="button" onClick={onAccount} className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-900 text-sm font-black text-white" aria-label="내 계정" title={user.name}>
+              {user.avatarUrl ? <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" /> : user.name.slice(0, 1)}
+            </button>
+          ) : (
+            <button type="button" onClick={openLogin} className="shrink-0 rounded-full bg-slate-900 px-3.5 py-1.5 text-xs font-bold text-white">
+              로그인
+            </button>
+          ))}
         </div>
       </div>
     </header>
@@ -69,9 +67,7 @@ function BottomNav({ tab, onTab }: { tab: NavTab; onTab: (t: NavTab) => void }) 
   const items: Array<{ id: NavTab; label: string; icon: ReactNode }> = [
     { id: 'home', label: '타이머 홈', icon: <Timer size={20} /> },
     { id: 'history', label: '누적 기록 및 오답 통계', icon: <BarChart3 size={20} /> },
-    SITE.betaFree
-      ? { id: 'account', label: '설정', icon: <Settings size={20} /> }
-      : { id: 'account', label: '로그인/계정 설정', icon: <UserRound size={20} /> },
+    { id: 'account', label: '내 계정 · 설정', icon: <UserRound size={20} /> },
   ];
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)]">
@@ -130,7 +126,7 @@ export function Layout({
   return (
     <div className={cx('app-root min-h-screen', immersive && isPro ? 'bg-slate-950' : 'bg-slate-100')}>
       {/* 시험 화면은 시계와 풀이 버튼만 보이도록 상단 바를 숨김 */}
-      {!immersive && <Header onBack={onBack} />}
+      {!immersive && <Header onBack={onBack} onAccount={() => onTab('account')} />}
       <div className="mx-auto flex w-full max-w-[1440px] justify-center gap-6 lg:px-4">
         {showSideAds && (
           <aside className="hidden w-[160px] shrink-0 pt-6 lg:block xl:w-[300px]">

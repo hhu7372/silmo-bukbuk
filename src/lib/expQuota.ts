@@ -1,50 +1,31 @@
 /**
- * EXP 모드 이용 한도
- *  - 비회원: 사용 불가 (회원가입 유도)
- *  - 회원: 무료 10회
- *  - Pro 구독: 무제한
- * 현재는 브라우저(localStorage)에 기록하는 데모 구현입니다.
- * 실제 서비스에서는 서버(Supabase 등)에서 계정 단위로 차감해야 우회할 수 없습니다.
+ * EXP 모드 이용 한도 (서버 기준)
+ *  - 베타 기간: 모두 무제한
+ *  - 비회원: 사용 불가 (로그인 유도)
+ *  - 회원: 무료 N회 (서버 entitlements.exp_used / exp_free_limit())
+ *  - Pro: 무제한
+ * 실제 차감은 시험 시작 때 서버 함수 consume_exp() 로 합니다.
  */
 import { SITE } from '../config/site';
+import type { AppUser, Entitlement } from '../types';
 
 export const FREE_EXP_SESSIONS = 10;
 
 export type ExpAccess =
   | { kind: 'beta' }
   | { kind: 'guest' }
-  | { kind: 'member'; remaining: number; used: number }
-  | { kind: 'exhausted'; used: number }
-  | { kind: 'pro' };
+  | { kind: 'member'; remaining: number; used: number; limit: number }
+  | { kind: 'exhausted'; used: number; limit: number }
+  | { kind: 'pro'; until: string | null };
 
-const key = (userId: string) => `csat-timer:exp-used:${userId}`;
-
-export function getExpUsed(userId: string): number {
-  try {
-    const n = Number(localStorage.getItem(key(userId)) ?? '0');
-    return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
-  } catch {
-    return 0;
-  }
-}
-
-export function consumeExp(userId: string): number {
-  const next = getExpUsed(userId) + 1;
-  try {
-    localStorage.setItem(key(userId), String(next));
-  } catch {
-    /* 저장 불가 환경 */
-  }
-  return next;
-}
-
-export function getExpAccess(userId: string | null, isPro: boolean): ExpAccess {
+export function getExpAccess(user: AppUser | null, entitlement: Entitlement | null): ExpAccess {
   if (SITE.betaFree) return { kind: 'beta' };
-  if (isPro) return { kind: 'pro' };
-  if (!userId) return { kind: 'guest' };
-  const used = getExpUsed(userId);
-  const remaining = Math.max(0, FREE_EXP_SESSIONS - used);
-  return remaining > 0 ? { kind: 'member', remaining, used } : { kind: 'exhausted', used };
+  if (!user) return { kind: 'guest' };
+  if (entitlement?.isPro) return { kind: 'pro', until: entitlement.proUntil };
+  const limit = entitlement?.expLimit ?? FREE_EXP_SESSIONS;
+  const used = entitlement?.expUsed ?? 0;
+  const remaining = Math.max(0, limit - used);
+  return remaining > 0 ? { kind: 'member', remaining, used, limit } : { kind: 'exhausted', used, limit };
 }
 
 export function canUseExp(a: ExpAccess): boolean {

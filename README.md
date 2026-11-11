@@ -2,7 +2,7 @@
 
 실제 수능 시간표 그대로 흐르는 모의고사 타이머. 문항별 풀이 시간(EXP 모드) 측정, 정답·내 답 빠른 입력 채점, 파트별 누적 오답 통계.
 
-React 18 + TypeScript + Vite + Tailwind CSS + Recharts + Lucide. 서버 없이 동작하는 정적 사이트(SPA)입니다.
+React 18 + TypeScript + Vite + Tailwind CSS + Recharts + Lucide. 정적 사이트(SPA)이며, 로그인·동기화는 Supabase 를 씁니다.
 
 ```bash
 npm install
@@ -40,7 +40,8 @@ npm run preview    # 빌드 결과 미리보기
 
 ## 운영 설정
 
-- **베타 무료 모드**: `src/config/site.ts` 의 `betaFree: true` 동안 로그인·Pro 토글이 숨겨지고 EXP 모드가 모두에게 무제한입니다. 정식 오픈 때 `false` 로 바꾸면 회원 10회 / Pro 무제한 정책으로 돌아갑니다(실제 회원·결제 서버 연동 필요).
+- **로그인·동기화·Pro 이용권**: Supabase(카카오·Google 로그인, RLS, 서버 함수). `VITE_SUPABASE_URL`·`VITE_SUPABASE_ANON_KEY` 가 있으면 켜지고, 없으면 로그인 버튼이 숨겨집니다. 설정 방법: `docs/로그인-구독-설정.md`, DB: `supabase/001_init.sql`
+- **베타 무료 모드**: `src/config/site.ts` 의 `betaFree: true` 동안 EXP 모드가 모두에게 무제한입니다. 정식 오픈 때 `false` 로 바꾸면 비회원 불가 / 회원 10회(서버 차감) / Pro 무제한 정책이 적용됩니다.
 - **광고(AdSense)**: 환경 변수 `VITE_ADSENSE_CLIENT`(ca-pub-…)를 넣고 빌드하면 광고 스크립트·소유 확인 메타·`ads.txt` 가 자동으로 들어갑니다. 승인 후 광고 단위 ID 를 `VITE_ADSENSE_SLOT_LEFT / RIGHT / MOBILE` 에 넣으면 자리표시자가 실제 광고로 바뀝니다.
 - **개인정보 처리방침**: 빌드 시 `privacy.html` 이 생성됩니다. 문의 이메일은 `CONTACT_EMAIL`.
 - **의견·문의 접수**: `VITE_FORM_ENDPOINT` 에 Formspree 같은 폼 접수 주소를 넣으면 사이트에서 바로 전송됩니다. 없으면 `CONTACT_EMAIL` 로 메일 앱을 여는 방식으로 대체됩니다.
@@ -61,7 +62,9 @@ npm run preview    # 빌드 결과 미리보기
 | `src/lib/audio.ts`, `builtinSounds.ts`, `soundStore.ts` | 타종 합성·내장 음원·사용자 음원(IndexedDB) |
 | `src/lib/expQuota.ts` | EXP 이용 한도 (비회원 불가 / 회원 10회 / Pro 무제한) |
 | `src/lib/sampleData.ts` | 누적 기록 둘러보기용 예시 데이터 |
-| `src/repository/resultRepository.ts` | 저장소 인터페이스 + localStorage 구현 (Supabase/Firebase 구현체 교체 지점) |
+| `src/repository/resultRepository.ts` | 저장소 인터페이스 + 비회원용 localStorage 구현 |
+| `src/repository/syncedRepository.ts` | 로그인 회원용 Supabase 저장소 (기기 기록 업로드·동기화) |
+| `src/lib/supabase.ts`, `supabase/001_init.sql` | Supabase 클라이언트, DB 스키마·권한·서버 함수 |
 | `src/screens/*` | 홈 / 설정 / 시험 진행 / 결과 리포트 / 누적 통계 / 계정 |
 
 ## 시험 화면 단축키
